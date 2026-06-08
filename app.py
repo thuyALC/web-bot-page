@@ -12,8 +12,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-# Đổi về bản 1.5-flash để được Google cho xài free hạn mức khủng (15 lượt/phút)
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-1.5-flash") 
+# Đã nâng cấp model lên bản 2.5-flash vì 1.5-flash bị Google ngừng hỗ trợ
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
@@ -87,7 +87,7 @@ def chat():
     return jsonify({"reply": reply, "search_status": search_status})
 
 
-# ================= STICKER VƯỢT TƯỜNG LỬA TRÌNH DUYỆT =================
+# ================= STICKER VỚI GEMINI 2.5 FLASH IMAGE =================
 @app.post("/api/sticker")
 def create_sticker():
     payload = request.get_json(force=True)
@@ -95,25 +95,50 @@ def create_sticker():
 
     if not prompt:
         return jsonify({"error": "Cần có mô tả."}), 400
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY."}), 500
 
     try:
-        safe_prompt = urllib.parse.quote(f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}")
-        seed = random.randint(1, 999999) 
-        image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?nologo=true&width=512&height=512&seed={seed}"
+        # Sử dụng model gemini-2.5-flash-image chuyên tạo ảnh của Google bằng API Key hiện tại
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key={GEMINI_API_KEY}"
         
-        # Thêm Header giả lập trình duyệt Chrome để không bị API Pollinations chặn IP
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        sticker_prompt = f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}"
+        api_payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": sticker_prompt}]
+                }
+            ]
         }
-        res = requests.get(image_url, headers=headers, timeout=45)
         
-        if res.status_code == 200:
-            img_b64 = base64.b64encode(res.content).decode('utf-8')
-            return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
-        else:
-            return jsonify({"error": f"Server vẽ ảnh báo lỗi ({res.status_code}). Thử lại lúc khác nhé."}), 500
+        res = requests.post(url, json=api_payload, headers={"Content-Type": "application/json"}, timeout=45)
+        
+        if res.status_code != 200:
+            err_data = res.json()
+            err_msg = err_data.get("error", {}).get("message", str(res.text))
+            return jsonify({"error": f"Lỗi Google Image: {err_msg}"}), 500
+            
+        data = res.json()
+        
+        try:
+            parts = data["candidates"][0]["content"]["parts"]
+            image_part = next((p for p in parts if "inlineData" in p), None)
+            
+            if image_part:
+                img_b64 = image_part["inlineData"]["data"]
+                mime_type = image_part["inlineData"].get("mimeType", "image/png")
+                return jsonify({"sticker_url": f"data:{mime_type};base64,{img_b64}"})
+            else:
+                text_msg = parts[0].get("text", "Không tạo được ảnh (có thể do từ khóa nhạy cảm).")
+                return jsonify({"error": f"AI từ chối: {text_msg}"}), 400
+                
+        except (KeyError, IndexError):
+            return jsonify({"error": "Dữ liệu ảnh trả về bị lỗi định dạng."}), 500
+
     except Exception as e:
-        return jsonify({"error": f"Lỗi tải ảnh: {str(e)}"}), 500
+        return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
+
 
 # ================= TRÒ CHƠI =================
 NGAN_HANG_CAU_DO = [
