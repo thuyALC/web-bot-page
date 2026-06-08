@@ -24,22 +24,23 @@ VIDEO_FORMATS = {
 
 def get_duckduckgo_data(query: str) -> str:
     try:
-        # 1. Chuyển sang bản html.duckduckgo.com (ổn định hơn lite)
+        # Sử dụng URL tìm kiếm chuẩn của DuckDuckGo
         url = "https://html.duckduckgo.com/html/"
         today = datetime.now().strftime("%d/%m/%Y")
         search_query = f"{query} moi nhat hom nay {today}"
         
-        # 2. Thay User-Agent thật để không bị dính lỗi 403 Forbidden
+        # User-Agent đầy đủ giả lập trình duyệt thật
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "vi,en-US;q=0.7,en;q=0.3",
         }
         
-        res = requests.post(
+        # CHUYỂN THÀNH GET: Truyền tham số qua params={'q': search_query} thay vì data={}
+        res = requests.get(
             url,
             headers=headers,
-            data={"q": search_query},
+            params={"q": search_query},
             timeout=10,
         )
         
@@ -49,9 +50,8 @@ def get_duckduckgo_data(query: str) -> str:
         soup = BeautifulSoup(res.text, "html.parser")
         results = []
         
-        # 3. Cấu trúc HTML của trang /html/ khác với /lite/
-        # Các kết quả nằm trong class "result-links"
-        for item in soup.find_all("div", class_="result"):
+        # Cấu trúc bóc tách dữ liệu của trang DuckDuckGo HTML
+        for item in soup.find_all("div", class_="result__body"):
             a_tag = item.find("a", class_="result__url")
             snippet_tag = item.find("a", class_="result__snippet")
             
@@ -61,7 +61,7 @@ def get_duckduckgo_data(query: str) -> str:
             
             if title or snippet:
                 results.append(f"{title}\n{snippet}\nNguon: {href}")
-                if len(results) >= 5:  # Lấy tối đa 5 kết quả tốt nhất
+                if len(results) >= 5:  # Lấy 5 kết quả hàng đầu
                     break
 
         return "\n\n".join(results)
