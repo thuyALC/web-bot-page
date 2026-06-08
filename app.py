@@ -1,85 +1,63 @@
 import os
-import re
+import random
 from datetime import datetime
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, jsonify, render_template, request
 import requests
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
-# Biến duy nhất cần trên Render: GEMINI_API_KEY
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = "gemini-2.5-flash" 
 
-def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
-    if not GEMINI_API_KEY:
-        return "Chưa cấu hình GEMINI_API_KEY trên Render.", "Lỗi hệ thống", chat_history
-    if chat_history is None:
-        chat_history = []
+# Biến lưu trạng thái game toàn cục (thay cho session để không bao giờ lỗi)
+game_data = {"dapan": "", "giaithich": ""}
+chat_history = []
 
-    contents = []
-    for msg in chat_history[-10:]:
-        contents.append({"role": msg["role"], "parts": [{"text": msg["content"]}]})
-    contents.append({"role": "user", "parts": [{"text": user_message}]})
-
+def ask_ai(user_message, use_search=True):
+    if not GEMINI_API_KEY: return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi"
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+    payload = {"contents": [{"role": "user", "parts": [{"text": user_message}]}]}
+    if use_search: payload["tools"] = [{"google_search": {}}]
+    
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        payload = {"contents": contents}
-        if use_search:
-            payload["tools"] = [{"google_search": {}}]
-        
-        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
-        
-        if res.status_code != 200:
-            return f"Lỗi Google: {res.text}", "Lỗi API", chat_history
-            
-        response_data = res.json()
-        reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
-        
-        grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
-        used_google = bool(grounding_meta.get("groundingChunks"))
-        status_text = "Đã nối mạng Google" if used_google else "Dùng não (Offline)"
-        
-        chat_history.append({"role": "user", "content": user_message})
-        chat_history.append({"role": "model", "content": reply})
-        
-        return reply, status_text, chat_history
-    except Exception as e:
-        return f"Lỗi kỹ thuật: {str(e)}", "Lỗi Code", chat_history
+        res = requests.post(url, json=payload, timeout=30).json()
+        return res["candidates"][0]["content"]["parts"][0]["text"], "Đã xử lý"
+    except: return "Lỗi AI rồi bạn ơi.", "Lỗi"
 
 @app.get("/")
-def index():
-    return render_template("index.html")
+def index(): return render_template("index.html")
 
 @app.post("/api/chat")
 def chat():
-    payload = request.get_json(force=True)
-    message = (payload.get("message") or "").strip()
-    use_search = payload.get("search", True) is not False
-    if not message: return jsonify({"error": "Nhập nội dung"}), 400
-
-    history = session.get("chat_history", [])
-    reply, search_status, new_history = ask_ai(message, use_search, history)
-    session["chat_history"] = new_history
-    return jsonify({"reply": reply, "search_status": search_status})
+    data = request.get_json()
+    reply, status = ask_ai(data["message"], data.get("search", True))
+    return jsonify({"reply": reply, "search_status": status})
 
 @app.post("/api/ghost_story")
-def ghost_story():
-    topic = request.get_json(force=True).get("topic", "đêm khuya")
-    prompt = f"Hãy sáng tác một câu chuyện ma ngắn, rùng rợn, bất ngờ về chủ đề: {topic}."
-    
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
-        story = res.json()["candidates"][0]["content"]["parts"][0]["text"]
-        return jsonify({"story": story})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+def ghost():
+    topic = request.get_json().get("topic", "đêm khuya")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+    res = requests.post(url, json={"contents": [{"parts": [{"text": f"Kể truyện ma về: {topic}"}]}]}, timeout=30)
+    return jsonify({"story": res.json()["candidates"][0]["content"]["parts"][0]["text"]})
 
-@app.post("/api/clear")
-def clear():
-    session.pop("chat_history", None)
-    return jsonify({"ok": True})
+@app.post("/api/game/riddle")
+def riddle():
+    NGAN_HANG = [
+        {"emoji": "👄💄", "dapan": "son môi", "giai": "Cái môi + thỏi son"},
+        {"emoji": "🐎🧊", "dapan": "ngựa đá", "giai": "Con ngựa + cục đá"}
+    ]
+    cau = random.choice(NGAN_HANG)
+    game_data["dapan"] = cau["dapan"]
+    game_data["giai"] = cau["giai"]
+    return jsonify({"emoji": cau["emoji"]})
+
+@app.post("/api/game/guess")
+def guess():
+    user_guess = request.get_json().get("guess", "").lower()
+    if user_guess == game_data["dapan"]:
+        return jsonify({"correct": True, "message": f"Đúng! {game_data['giai']}"})
+    return jsonify({"correct": False, "message": "Sai rồi!"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
