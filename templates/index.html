@@ -19,11 +19,12 @@
     button:hover { background: #0f5447; }
     button.secondary { background: #3f4b57; }
     button.secondary:hover { background: #2c353e; }
+    button.warning { background: #d35400; }
+    button.warning:hover { background: #a84300; }
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;}
     pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 14px; border-radius: 6px; background: #101820; color: #e8f0f2; line-height: 1.5; }
     .media-box { margin-top: 15px; text-align: center; }
     .media-box img { max-width: 100%; border-radius: 8px; border: 1px solid #ccc; display: none; }
-    /* Style Game Đuổi hình bắt chữ */
     .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
     @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 12px; } }
   </style>
@@ -63,8 +64,9 @@
       <h2>Trò chơi: Đuổi Hình Bắt Chữ (AI Emoji)</h2>
       <div class="game-board" id="game-display">❓❔❓</div>
       <div class="row" style="display: flex;">
-        <input id="game-guess" placeholder="Gõ đáp án vào đây (không dấu cũng được)..." style="flex: 1; margin-bottom: 0;">
+        <input id="game-guess" placeholder="Gõ đáp án vào đây..." style="flex: 1; margin-bottom: 0;">
         <button id="btn-guess">Đoán</button>
+        <button class="warning" id="btn-show-answer">Xem đáp án</button>
         <button class="secondary" id="btn-new-riddle">Lấy câu đố</button>
       </div>
       <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: #146c5c;">Bấm "Lấy câu đố" để AI ra đề nhé!</div>
@@ -148,6 +150,19 @@
         } else {
           gameStatus.style.color = "#d35400"; 
         }
+      } catch (err) { 
+        gameStatus.textContent = "Lỗi: " + err.message; 
+        gameStatus.style.color = "red";
+      }
+    });
+
+    // Nút Xem đáp án mới
+    document.querySelector("#btn-show-answer").addEventListener("click", async () => {
+      try {
+        const data = await postJson("/api/game/answer", {});
+        gameStatus.textContent = data.message;
+        gameStatus.style.color = "#d35400"; // Hiện màu cam
+        gameDisplay.textContent = "🙈"; // Giấu ảnh đi vì đã xem đáp án
       } catch (err) { 
         gameStatus.textContent = "Lỗi: " + err.message; 
         gameStatus.style.color = "red";
