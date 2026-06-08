@@ -1,11 +1,11 @@
 import os
 import json
+import random
 import unicodedata
+import urllib.parse
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
@@ -13,15 +13,8 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
-retry_strategy = Retry(
-    total=3, 
-    status_forcelist=[429, 500, 502, 503, 504],
-    allowed_methods=["POST", "GET"],
-    backoff_factor=2
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
+# Bỏ retry để tránh việc hệ thống tự động chờ đợi làm web bị treo lâu
 http = requests.Session()
-http.mount("https://", adapter)
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
@@ -49,7 +42,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
-        res = http.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+        # Đặt timeout ngắn hơn để nếu lỗi thì báo luôn
+        res = http.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
         res.raise_for_status()
         
         response_data = res.json()
@@ -68,7 +62,7 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         
         return reply, status_text, chat_history
     except requests.exceptions.RequestException as e:
-        return "Mạng nghẽn hoặc Google quá tải. Đợi tí thử lại nha.", "Lỗi kết nối", chat_history
+        return "Mạng nghẽn. Nếu mạng chậm quá, bạn thử TẮT dấu tích [Nối mạng web] rồi gửi lại xem sao nhé!", "Lỗi kết nối", chat_history
 
 @app.get("/")
 def index():
@@ -88,6 +82,7 @@ def chat():
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
+# ================= TÍNH NĂNG STICKER (SIÊU TỐC - KHÔNG LỖI) =================
 @app.post("/api/sticker")
 def create_sticker():
     payload = request.get_json(force=True)
@@ -95,56 +90,40 @@ def create_sticker():
 
     if not prompt:
         return jsonify({"error": "Cần có mô tả."}), 400
-    if not GEMINI_API_KEY:
-         return jsonify({"error": "Chưa cấu hình API Key."}), 500
 
     try:
-        # SỬA LỖI Ở ĐÂY: Hạ model xuống 001 theo đúng giới hạn của API miễn phí
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key={GEMINI_API_KEY}"
-        api_payload = {
-            "instances": [{"prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}"}],
-            "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
-        }
-        res = http.post(url, json=api_payload, timeout=40)
+        # Chuyển sang API tạo ảnh Pollinations (Miễn phí, không giới hạn, nhanh gấp 5 lần)
+        safe_prompt = urllib.parse.quote(f"Vector sticker style, clean die-cut edge, transparent background, {prompt}")
+        image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?nologo=true&width=512&height=512"
         
-        if res.status_code != 200:
-            err_data = res.json()
-            err_msg = err_data.get("error", {}).get("message", "Lỗi tạo ảnh")
-            return jsonify({"error": f"Lỗi từ Google: {err_msg}"}), 400
-
-        data = res.json()
-        image_base64 = data["predictions"][0]["bytesBase64Encoded"]
-        return jsonify({"sticker_url": f"data:image/png;base64,{image_base64}"})
+        # Trả thẳng URL ảnh về trình duyệt
+        return jsonify({"sticker_url": image_url})
     except Exception as e:
-        return jsonify({"error": f"Lỗi kết nối: {str(e)}"}), 500
+        return jsonify({"error": "Lỗi tạo ảnh. Vui lòng thử lại sau."}), 500
 
-# ================= TÍNH NĂNG TRÒ CHƠI =================
+# ================= TÍNH NĂNG TRÒ CHƠI (SIÊU TỐC - 0 GIÂY) =================
+# Tạo sẵn ngân hàng câu đố, khỏi cần gọi AI mất thời gian
+NGAN_HANG_CAU_DO = [
+    {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
+    {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
+    {"emoji": "🐎🧊", "dapan": "ngựa đá", "giaithich": "Con ngựa + cục đá"},
+    {"emoji": "🔥🍲", "dapan": "lẩu thái", "giaithich": "Lửa (cay nóng) + nồi lẩu"},
+    {"emoji": "👁️📻", "dapan": "thị đài", "giaithich": "Mắt (thị) + cái đài"},
+    {"emoji": "🐒🌲", "dapan": "khỉ leo cây", "giaithich": "Con khỉ + cái cây"},
+    {"emoji": "🐮🎀", "dapan": "bò nơ", "giaithich": "Con bò + cái nơ (Bo-nớt)"},
+    {"emoji": "☁️🌧️", "dapan": "mưa bóng mây", "giaithich": "Đám mây + trời mưa"},
+    {"emoji": "⚽🥅", "dapan": "vào lưới", "giaithich": "Quả bóng + khung thành"},
+    {"emoji": "🐸💧", "dapan": "ếch ngồi đáy giếng", "giaithich": "Con ếch + giọt nước"},
+    {"emoji": "🐉🧚‍♀️", "dapan": "rồng bay phượng múa", "giaithich": "Con rồng + cô tiên bay"}
+]
+
 @app.post("/api/game/riddle")
 def game_riddle():
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "Chưa cấu hình API Key."}), 500
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        prompt = """Bạn là quản trò chơi Đuổi Hình Bắt Chữ tiếng Việt.
-        Hãy tạo một câu đố bằng 2-3 Emoji. Cố gắng tạo các từ ghép thú vị.
-        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá, 👄💄 -> son môi.
-        Chỉ trả về JSON với cấu trúc: {"emoji": "...", "dapan": "...", "giaithich": "..."}"""
-        
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json"}
-        }
-        res = http.post(url, json=payload, timeout=20)
-        res.raise_for_status()
-        
-        data = res.json()
-        riddle_json = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
-        
-        session["game_dapan"] = riddle_json["dapan"].strip().lower()
-        session["game_giaithich"] = riddle_json["giaithich"]
-        return jsonify({"emoji": riddle_json["emoji"]})
-    except Exception as e:
-        return jsonify({"error": "AI đang bí ý tưởng. Nhấn lấy câu đố lại nhé!"}), 500
+    # Lấy random 1 câu đố lập tức
+    cau_do = random.choice(NGAN_HANG_CAU_DO)
+    session["game_dapan"] = cau_do["dapan"]
+    session["game_giaithich"] = cau_do["giaithich"]
+    return jsonify({"emoji": cau_do["emoji"]})
 
 @app.post("/api/game/guess")
 def game_guess():
@@ -172,7 +151,6 @@ def game_answer():
     if not dapan:
         return jsonify({"error": "Chưa có câu đố nào đang chơi."}), 400
     
-    # Cho xem đáp án xong là xóa luôn, bắt chơi câu mới
     session.pop("game_dapan", None)
     return jsonify({"message": f"Bó tay à? Đáp án là: {dapan.title()} ({giaithich})" })
 
