@@ -36,7 +36,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         response_data = res.json()
         reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
-        # Nhận diện xem AI có dùng mạng hay không
         grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
         used_google = bool(
             grounding_meta.get("webSearchQueries") or 
@@ -44,9 +43,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
             grounding_meta.get("groundingChunks")
         )
         
-        # Cập nhật thông báo chuyên nghiệp
         if used_google:
-            status_text = "🌐 Dữ liệu được cập nhật từ Google Search"
+            status_text = "🌐 Dữ liệu cập nhật từ Google Search"
         else:
             status_text = "🧠 Dữ liệu nội bộ từ AI"
             
@@ -80,7 +78,7 @@ def chat():
 @app.post("/api/ghost_story")
 def ghost_story():
     topic = request.get_json(force=True).get("topic", "đêm khuya")
-    prompt = f"Hãy viết một câu chuyện ma rùng rợn, bất ngờ và cuốn hút về chủ đề: {topic}. Văn phong trôi chảy, đậm chất kể chuyện."
+    prompt = f"Hãy viết một câu chuyện ma rùng rợn, giật gân, bất ngờ và cuốn hút về chủ đề: {topic}. Viết chi tiết, dài khoảng 300 chữ, văn phong trôi chảy đậm chất kể chuyện."
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
         res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
