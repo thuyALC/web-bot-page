@@ -13,15 +13,13 @@ import requests
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
-# Dùng 2 key này trên Render
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
-# Sử dụng model DeepSeek R1 siêu xịn của Groq
-MODEL_NAME = os.environ.get("MODEL_NAME", "deepseek-r1-distill-llama-70b") 
+# Đổi sang Llama 3.3 70B vì model DeepSeek cũ đã bị Groq khai tử
+MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile") 
 
 def get_web_data(query: str) -> str:
-    """Dùng Google News RSS để cào data né chặn IP"""
     if len(query) < 2:
         return ""
     try:
@@ -77,7 +75,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
             
         reply = res.json()["choices"][0]["message"]["content"]
         
-        # Lọc thẻ <think> của dòng họ DeepSeek để câu trả lời gọn gàng hơn
         reply_clean = re.sub(r'<think>.*?</think>', '', reply, flags=re.DOTALL).strip()
         if not reply_clean:
             reply_clean = reply
@@ -109,8 +106,6 @@ def chat():
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
-
-# ================= STICKER VỚI HUGGING FACE API =================
 @app.post("/api/sticker")
 def create_sticker():
     payload = request.get_json(force=True)
@@ -122,28 +117,23 @@ def create_sticker():
         return jsonify({"error": "Chưa cấu hình HF_TOKEN (Hugging Face) trên server."}), 500
 
     try:
-        # Dùng SDXL của Stability AI trên Hugging Face
         url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
         headers = {"Authorization": f"Bearer {HF_TOKEN}"}
         
         sticker_prompt = f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}"
         api_payload = {"inputs": sticker_prompt}
         
-        # Gọi thẳng API lấy bytes ảnh
         res = requests.post(url, headers=headers, json=api_payload, timeout=45)
         
         if res.status_code != 200:
             return jsonify({"error": f"Lỗi vẽ ảnh HuggingFace (Mã {res.status_code}). Có thể API đang bận."}), 500
             
-        # Đóng gói ảnh thành Base64 gửi về Frontend
         img_b64 = base64.b64encode(res.content).decode('utf-8')
         return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
 
     except Exception as e:
-        return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
+        return jsonify({"error": f"Lỗi mạng server (khởi động lại server để fix): {str(e)}"}), 500
 
-
-# ================= TRÒ CHƠI =================
 NGAN_HANG_CAU_DO = [
     {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
     {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
