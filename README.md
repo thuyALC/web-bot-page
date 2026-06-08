@@ -33,7 +33,7 @@ Thiet lap:
 
 ```text
 Build command: pip install -r requirements.txt
-Start command: gunicorn app:app --bind 0.0.0.0:$PORT
+Start command: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
 Environment variable: GROQ_API_KEY=key_moi_cua_ban
 Environment variable: DOWNLOAD_TIMEOUT=900
 ```

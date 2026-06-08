@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tro ly web</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #17202a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(980px, 100%);
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d7dde3;
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 10px 24px rgba(20, 31, 43, 0.08);
+    }
+
+    h1,
+    h2 {
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+
+    h1 {
+      font-size: 26px;
+    }
+
+    h2 {
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+    }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    textarea,
+    input,
+    select {
+      width: 100%;
+      border: 1px solid #b8c2cc;
+      border-radius: 6px;
+      padding: 11px 12px;
+      font: inherit;
+      background: #ffffff;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 11px 14px;
+      font: inherit;
+      font-weight: 700;
+      background: #146c5c;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #3f4b57;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .check {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      font-weight: 400;
+      margin: 0;
+    }
+
+    .check input {
+      width: auto;
+    }
+
+    pre {
+      min-height: 140px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0;
+      padding: 14px;
+      border-radius: 6px;
+      background: #101820;
+      color: #e8f0f2;
+      line-height: 1.5;
+    }
+
+    .links {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .links a {
+      display: block;
+      padding: 11px 12px;
+      border-radius: 6px;
+      background: #e7f3ef;
+      color: #0c5d4d;
+      font-weight: 700;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+      border: 1px solid #b7d9d0;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .muted {
+      color: #5b6875;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 12px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .media-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <h1>Tro ly web</h1>
+      <p class="muted">Ban web cua bot Python: chat AI co tim data moi, boc link, nghe nhac va tai/gop MP4 bang yt-dlp.</p>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Chat AI</h2>
+        <label for="message">Noi dung</label>
+        <textarea id="message" placeholder="Nhap cau hoi..."></textarea>
+        <div class="row">
+          <button id="send">Gui</button>
+          <button class="secondary" id="clear">Xoa nho tam</button>
+          <label class="check">
+            <input id="search" type="checkbox" checked>
+            Lay data moi truoc khi tra loi
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Boc link</h2>
+        <label for="media-url">Link video/nhac</label>
+        <input id="media-url" placeholder="Dan link YouTube/Facebook...">
+        <div class="row">
+          <select id="quality" aria-label="Chat luong">
+            <option value="1080">1080p</option>
+            <option value="720" selected>720p</option>
+            <option value="480">480p</option>
+            <option value="audio">Audio</option>
+          </select>
+          <button id="extract">Boc link</button>
+          <button class="secondary" id="download">Tai & gop MP4</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="media-grid">
+      <div class="panel">
+        <h2>Nghe nhac</h2>
+        <label for="song">Ten bai hoac link</label>
+        <input id="song" placeholder="Nhap ten bai hat...">
+        <div class="row">
+          <button id="play">Phat</button>
+          <button class="secondary" id="stop-audio">Dung</button>
+        </div>
+        <audio id="player" controls></audio>
+      </div>
+
+      <div class="panel">
+        <h2>Doc noi dung</h2>
+        <p class="muted">Doc bang giong cua trinh duyet tren may dang mo web.</p>
+        <div class="row">
+          <button id="speak-result">Doc ket qua</button>
+          <button class="secondary" id="stop-speak">Dung doc</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Ket qua</h2>
+      <pre id="result">San sang.</pre>
+      <div class="links" id="links"></div>
+    </section>
+  </main>
+
+  <script>
+    const result = document.querySelector("#result");
+    const links = document.querySelector("#links");
+    const player = document.querySelector("#player");
+
+    function show(value) {
+      result.textContent = value;
+      links.innerHTML = "";
+    }
+
+    function showLinks(items) {
+      links.innerHTML = "";
+      items.forEach((url, index) => {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = items.length > 1 ? `Mo link ${index + 1}` : "Mo link";
+        links.appendChild(a);
+      });
+    }
+
+    async function postJson(url, data) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const text = await res.text();
+      let json = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (_) {
+        const shortText = text.trim().slice(0, 500);
+        throw new Error(shortText || "Server tra ve du lieu khong hop le. Hay xem Render logs.");
+      }
+
+      if (!res.ok) {
+        throw new Error(json.error || "Loi khong ro.");
+      }
+      return json;
+    }
+
+    async function downloadFile(url, data) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        let message = "Tai that bai.";
+        try {
+          const json = await res.json();
+          message = json.error || message;
+        } catch (_) {
+          message = await res.text();
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const quality = data.quality || "720";
+      link.href = objectUrl;
+      link.download = `video_${quality}p.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    }
+
+    document.querySelector("#send").addEventListener("click", async () => {
+      const message = document.querySelector("#message").value.trim();
+      const search = document.querySelector("#search").checked;
+      show("Dang xu ly...");
+      try {
+        const data = await postJson("/api/chat", { message, search });
+        const status = data.search_status ? `[${data.search_status}]\n\n` : "";
+        show(`${status}${data.reply}`);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+
+    document.querySelector("#extract").addEventListener("click", async () => {
+      const url = document.querySelector("#media-url").value.trim();
+      const quality = document.querySelector("#quality").value;
+      show("Dang boc link...");
+      try {
+        const data = await postJson("/api/extract", { url, quality });
+        if (!data.links.length) {
+          show("Khong co link hop le.");
+          return;
+        }
+        show(data.links.join("\n\n"));
+        showLinks(data.links);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+
+    document.querySelector("#download").addEventListener("click", async () => {
+      const url = document.querySelector("#media-url").value.trim();
+      const quality = document.querySelector("#quality").value;
+
+      if (quality === "audio") {
+        show("Nut nay chi tai va gop MP4. Hay chon 1080p, 720p hoac 480p.");
+        return;
+      }
+
+      show("Dang tai va gop MP4... Video dai se mat vai phut.");
+      try {
+        await downloadFile("/api/download", { url, quality });
+        show("Da gui file ve trinh duyet. Neu khong thay, kiem tra muc Downloads.");
+      } catch (error) {
+        show(error.message);
+      }
+    });
+
+    document.querySelector("#play").addEventListener("click", async () => {
+      const query = document.querySelector("#song").value.trim();
+      show("Dang tim bai...");
+      try {
+        const data = await postJson("/api/play", { query });
+        player.src = data.url;
+        await player.play();
+        show(`Dang phat: ${data.title}`);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+
+    document.querySelector("#stop-audio").addEventListener("click", () => {
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+      show("Da dung nhac.");
+    });
+
+    document.querySelector("#speak-result").addEventListener("click", () => {
+      const text = result.textContent.trim();
+      if (!text || text === "San sang.") {
+        show("Chua co noi dung de doc.");
+        return;
+      }
+
+      speechSynthesis.cancel();
+      const speech = new SpeechSynthesisUtterance(text);
+      speech.lang = "vi-VN";
+      speech.rate = 1;
+      speechSynthesis.speak(speech);
+    });
+
+    document.querySelector("#stop-speak").addEventListener("click", () => {
+      speechSynthesis.cancel();
+    });
+
+    document.querySelector("#clear").addEventListener("click", async () => {
+      show("Dang xoa...");
+      try {
+        await postJson("/api/clear", {});
+        show("Da xoa nho tam.");
+      } catch (error) {
+        show(error.message);
+      }
+    });
+  </script>
+</body>
+</html>
