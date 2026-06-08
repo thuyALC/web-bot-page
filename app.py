@@ -12,7 +12,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
+# Đổi về bản 1.5-flash để được Google cho xài free hạn mức khủng (15 lượt/phút)
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-1.5-flash") 
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
@@ -40,10 +41,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
-        # Đơn giản hóa request, thời gian chờ 45s, không tự động retry để tránh treo server
         res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
         
-        # Nếu Google trả về lỗi, in thẳng lỗi ra để biết đường sửa
         if res.status_code != 200:
             err_data = res.json()
             err_msg = err_data.get("error", {}).get("message", str(res.text))
@@ -98,19 +97,21 @@ def create_sticker():
         return jsonify({"error": "Cần có mô tả."}), 400
 
     try:
-        # Cấu hình lệnh vẽ
         safe_prompt = urllib.parse.quote(f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}")
-        seed = random.randint(1, 999999) # Chống dính cache ảnh cũ
+        seed = random.randint(1, 999999) 
         image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?nologo=true&width=512&height=512&seed={seed}"
         
-        # Server tải ảnh trực tiếp (né CORS của trình duyệt)
-        res = requests.get(image_url, timeout=45)
+        # Thêm Header giả lập trình duyệt Chrome để không bị API Pollinations chặn IP
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        res = requests.get(image_url, headers=headers, timeout=45)
+        
         if res.status_code == 200:
-            # Gói ảnh thành chuỗi Base64 trả thẳng về Web
             img_b64 = base64.b64encode(res.content).decode('utf-8')
             return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
         else:
-            return jsonify({"error": "Server vẽ ảnh bị sập, thử lại sau."}), 500
+            return jsonify({"error": f"Server vẽ ảnh báo lỗi ({res.status_code}). Thử lại lúc khác nhé."}), 500
     except Exception as e:
         return jsonify({"error": f"Lỗi tải ảnh: {str(e)}"}), 500
 
