@@ -1,7 +1,5 @@
 import os
-import json
-import random
-import unicodedata
+import re
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session
 import requests
@@ -9,20 +7,15 @@ import requests
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
+# Biến duy nhất cần trên Render: GEMINI_API_KEY
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
+MODEL_NAME = "gemini-2.5-flash" 
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
-        return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi hệ thống", chat_history
+        return "Chưa cấu hình GEMINI_API_KEY trên Render.", "Lỗi hệ thống", chat_history
     if chat_history is None:
         chat_history = []
-
-    now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    system_instruction = (
-        "Bạn là trợ lý tiếng Việt, trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
-        f"Thời gian hiện tại: {now_str}."
-    )
 
     contents = []
     for msg in chat_history[-10:]:
@@ -31,37 +24,26 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
 
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        payload = {
-            "contents": contents,
-            "systemInstruction": {"parts": [{"text": system_instruction}]}
-        }
+        payload = {"contents": contents}
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
         res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
         
         if res.status_code != 200:
-            err_data = res.json()
-            err_msg = err_data.get("error", {}).get("message", str(res.text))
-            return f"Lỗi từ Google: {err_msg}", "Lỗi API", chat_history
+            return f"Lỗi Google: {res.text}", "Lỗi API", chat_history
             
         response_data = res.json()
         reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
         grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
-        used_google = bool(
-            grounding_meta.get("webSearchQueries") or 
-            grounding_meta.get("searchEntryPoint") or 
-            grounding_meta.get("groundingChunks")
-        )
-        status_text = "Nối mạng Google Search" if used_google else ("Tắt mạng" if not use_search else "Dùng não")
+        used_google = bool(grounding_meta.get("groundingChunks"))
+        status_text = "Đã nối mạng Google" if used_google else "Dùng não (Offline)"
         
         chat_history.append({"role": "user", "content": user_message})
         chat_history.append({"role": "model", "content": reply})
         
         return reply, status_text, chat_history
-    except requests.exceptions.RequestException as e:
-        return f"Lỗi kết nối máy chủ: {str(e)}", "Lỗi Timeout", chat_history
     except Exception as e:
         return f"Lỗi kỹ thuật: {str(e)}", "Lỗi Code", chat_history
 
@@ -74,95 +56,25 @@ def chat():
     payload = request.get_json(force=True)
     message = (payload.get("message") or "").strip()
     use_search = payload.get("search", True) is not False
-
-    if not message:
-        return jsonify({"error": "Nhập nội dung trước."}), 400
+    if not message: return jsonify({"error": "Nhập nội dung"}), 400
 
     history = session.get("chat_history", [])
     reply, search_status, new_history = ask_ai(message, use_search, history)
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
-
-# ================= KỂ TRUYỆN MA =================
 @app.post("/api/ghost_story")
 def ghost_story():
-    payload = request.get_json(force=True)
-    topic = (payload.get("topic") or "đêm khuya").strip()
-
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY trên server."}), 500
-
-    prompt = f"Hãy sáng tác một câu chuyện ma ngắn (khoảng 300-500 chữ) thật rùng rợn, bất ngờ và ám ảnh về chủ đề: {topic}. Giọng văn cuốn hút, rợn gáy."
-
+    topic = request.get_json(force=True).get("topic", "đêm khuya")
+    prompt = f"Hãy sáng tác một câu chuyện ma ngắn, rùng rợn, bất ngờ về chủ đề: {topic}."
+    
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        api_payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}]
-        }
-        res = requests.post(url, json=api_payload, headers={"Content-Type": "application/json"}, timeout=45)
-        
-        if res.status_code != 200:
-            err_data = res.json()
-            err_msg = err_data.get("error", {}).get("message", str(res.text))
-            return jsonify({"error": f"Lỗi API từ Google: {err_msg}"}), 500
-            
-        data = res.json()
-        story = data["candidates"][0]["content"]["parts"][0]["text"]
+        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
+        story = res.json()["candidates"][0]["content"]["parts"][0]["text"]
         return jsonify({"story": story})
     except Exception as e:
-        return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
-
-# ================= TRÒ CHƠI =================
-NGAN_HANG_CAU_DO = [
-    {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
-    {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
-    {"emoji": "🐎🧊", "dapan": "ngựa đá", "giaithich": "Con ngựa + cục đá"},
-    {"emoji": "🔥🍲", "dapan": "lẩu thái", "giaithich": "Lửa (cay nóng) + nồi lẩu"},
-    {"emoji": "👁️📻", "dapan": "thị đài", "giaithich": "Mắt (thị) + cái đài"},
-    {"emoji": "🐒🌲", "dapan": "khỉ leo cây", "giaithich": "Con khỉ + cái cây"},
-    {"emoji": "🐮🎀", "dapan": "bò nơ", "giaithich": "Con bò + cái nơ (Bo-nớt)"},
-    {"emoji": "☁️🌧️", "dapan": "mưa bóng mây", "giaithich": "Đám mây + trời mưa"},
-    {"emoji": "⚽🥅", "dapan": "vào lưới", "giaithich": "Quả bóng + khung thành"},
-    {"emoji": "🐸💧", "dapan": "ếch ngồi đáy giếng", "giaithich": "Con ếch + giọt nước"},
-    {"emoji": "🐉🧚‍♀️", "dapan": "rồng bay phượng múa", "giaithich": "Con rồng + cô tiên bay"}
-]
-
-@app.post("/api/game/riddle")
-def game_riddle():
-    cau_do = random.choice(NGAN_HANG_CAU_DO)
-    session["game_dapan"] = cau_do["dapan"]
-    session["game_giaithich"] = cau_do["giaithich"]
-    return jsonify({"emoji": cau_do["emoji"]})
-
-@app.post("/api/game/guess")
-def game_guess():
-    payload = request.get_json(force=True)
-    guess = (payload.get("guess") or "").strip().lower()
-    dapan = session.get("game_dapan")
-    giaithich = session.get("game_giaithich")
-    
-    if not dapan:
-        return jsonify({"error": "Chưa có câu đố nào. Hãy lấy câu đố mới."}), 400
-        
-    def normalize_vn(text):
-        return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('utf-8').replace(" ", "")
-        
-    if normalize_vn(guess) == normalize_vn(dapan):
-        session.pop("game_dapan", None)
-        return jsonify({"correct": True, "message": f"Chính xác! Đáp án: {dapan.title()} ({giaithich})" })
-    else:
-        return jsonify({"correct": False, "message": "Sai rồi, đoán lại thử xem!"})
-
-@app.post("/api/game/answer")
-def game_answer():
-    dapan = session.get("game_dapan")
-    giaithich = session.get("game_giaithich")
-    if not dapan:
-        return jsonify({"error": "Chưa có câu đố nào đang chơi."}), 400
-    
-    session.pop("game_dapan", None)
-    return jsonify({"message": f"Bó tay à? Đáp án là: {dapan.title()} ({giaithich})" })
+        return jsonify({"error": str(e)}), 500
 
 @app.post("/api/clear")
 def clear():
