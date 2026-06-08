@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trợ lý Web AI</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(980px, 100%); display: grid; gap: 16px; }
+    .panel { background: #ffffff; border: 1px solid #d7dde3; border-radius: 8px; padding: 18px; box-shadow: 0 10px 24px rgba(20, 31, 43, 0.08); }
+    h1, h2 { margin: 0 0 12px; line-height: 1.2; }
+    h1 { font-size: 26px; } h2 { font-size: 18px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    textarea, input { width: 100%; border: 1px solid #b8c2cc; border-radius: 6px; padding: 11px 12px; font: inherit; margin-bottom: 8px;}
+    textarea { min-height: 100px; resize: vertical; }
+    button { border: 0; border-radius: 6px; padding: 11px 14px; font: inherit; font-weight: 700; background: #146c5c; color: #ffffff; cursor: pointer; }
+    button.secondary { background: #3f4b57; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;}
+    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 14px; border-radius: 6px; background: #101820; color: #e8f0f2; line-height: 1.5; }
+    .media-box { margin-top: 15px; text-align: center; }
+    .media-box img, .media-box video { max-width: 100%; border-radius: 8px; border: 1px solid #ccc; display: none; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <h1>Trợ lý Web AI</h1>
+      <p style="color: #5b6875; margin: 0;">Chat AI, tạo Sticker Zalo trong suốt & Render Video bằng Gemini.</p>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Chat AI</h2>
+        <textarea id="message" placeholder="Nhập câu hỏi..."></textarea>
+        <div class="row">
+          <button id="send">Gửi</button>
+          <button class="secondary" id="clear">Xóa</button>
+          <label><input id="search" type="checkbox" checked> Lấy data web</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Tạo Sticker (Imagen 3)</h2>
+        <input id="sticker-prompt" placeholder="VD: một chú chó mặt xệ đang uống trà sữa">
+        <div class="row">
+          <button id="create-sticker">Tạo Sticker</button>
+        </div>
+        <div class="media-box" id="sticker-status"></div>
+        <div class="media-box">
+          <img id="sticker-img" src="" alt="Sticker Output">
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Tạo Video từ Ảnh (Veo 3)</h2>
+      <input id="video-image-url" placeholder="Dán link ảnh (http...) vào đây">
+      <input id="video-prompt" placeholder="Mô tả chuyển động (VD: mặt nước gợn sóng, lá rơi...)">
+      <div class="row">
+        <button id="create-video">Tạo Video</button>
+      </div>
+      <div class="media-box" id="video-status"></div>
+      <div class="media-box">
+        <video id="video-player" controls></video>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Kết quả Chat</h2>
+      <pre id="result">Sẵn sàng.</pre>
+    </section>
+  </main>
+
+  <script>
+    const resultBox = document.querySelector("#result");
+
+    async function postJson(url, data) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ.");
+      return json;
+    }
+
+    // Chat AI
+    document.querySelector("#send").addEventListener("click", async () => {
+      const message = document.querySelector("#message").value.trim();
+      const search = document.querySelector("#search").checked;
+      resultBox.textContent = "Đang xử lý...";
+      try {
+        const data = await postJson("/api/chat", { message, search });
+        resultBox.textContent = `[${data.search_status}]\n\n${data.reply}`;
+      } catch (err) { resultBox.textContent = err.message; }
+    });
+
+    // Tạo Sticker
+    document.querySelector("#create-sticker").addEventListener("click", async () => {
+      const prompt = document.querySelector("#sticker-prompt").value.trim();
+      const status = document.querySelector("#sticker-status");
+      const img = document.querySelector("#sticker-img");
+      img.style.display = "none";
+      status.textContent = "Đang vẽ sticker... Vui lòng đợi tầm 10-15s.";
+      try {
+        const data = await postJson("/api/sticker", { prompt });
+        img.src = data.sticker_url;
+        img.style.display = "block";
+        status.textContent = "Tạo thành công! (Chuột phải / Đè tay vào ảnh để lưu)";
+      } catch (err) { status.textContent = err.message; }
+    });
+
+    // Tạo Video
+    document.querySelector("#create-video").addEventListener("click", async () => {
+      const image_url = document.querySelector("#video-image-url").value.trim();
+      const prompt = document.querySelector("#video-prompt").value.trim();
+      const status = document.querySelector("#video-status");
+      const video = document.querySelector("#video-player");
+      video.style.display = "none";
+      status.textContent = "Đang render video... Có thể mất 30-60s.";
+      try {
+        const data = await postJson("/api/video", { image_url, prompt });
+        video.src = data.video_url;
+        video.style.display = "block";
+        status.textContent = "Render xong! Bấm Play để xem.";
+      } catch (err) { status.textContent = err.message; }
+    });
+
+    document.querySelector("#clear").addEventListener("click", async () => {
+      await postJson("/api/clear", {});
+      resultBox.textContent = "Đã xóa trí nhớ tạm.";
+    });
+  </script>
+</body>
+</html>
