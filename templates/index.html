@@ -2,49 +2,261 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <title>Trợ lý AI - Kể truyện ma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trợ lý Web AI</title>
   <style>
-    body { font-family: sans-serif; background: #1a1a2e; color: #fff; padding: 20px; }
-    .panel { background: #16213e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    textarea, input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-    button { padding: 10px 20px; background: #e94560; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
-    #story-output { white-space: pre-wrap; padding: 15px; background: #0f3460; border-left: 5px solid #e94560; margin-top: 10px; }
+    :root { color-scheme: light; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #2c3e50; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+    main { width: min(1000px, 100%); display: grid; gap: 20px; }
+    
+    .panel { background: #ffffff; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e1e8ed; }
+    h1, h2 { margin: 0 0 15px; line-height: 1.3; color: #2c3e50; }
+    h1 { font-size: 24px; font-weight: 700; } 
+    h2 { font-size: 18px; font-weight: 600; }
+    
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    textarea, input { width: 100%; border: 1px solid #ccd6dd; border-radius: 8px; padding: 12px; font: inherit; margin-bottom: 12px; background: #f8f9fa; transition: 0.3s; }
+    textarea:focus, input:focus { border-color: #3498db; outline: none; background: #fff; }
+    textarea { min-height: 100px; resize: vertical; }
+    
+    button { border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; background: #3498db; color: #ffffff; cursor: pointer; transition: 0.2s; }
+    button:hover { background: #2980b9; }
+    button.secondary { background: #7f8c8d; }
+    button.secondary:hover { background: #636e72; }
+    button.warning { background: #e67e22; }
+    button.warning:hover { background: #d35400; }
+    
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
+    
+    /* Huy hiệu trạng thái kết nối chuyên nghiệp */
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
+    .status-badge.online { background-color: #d1f2e6; color: #16a085; }
+    .status-badge.offline { background-color: #f2d7d5; color: #c0392b; }
+    .status-badge.loading { background-color: #fcf3cf; color: #f39c12; }
+    
+    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 15px; border-radius: 8px; background: #2c3e50; color: #ecf0f1; line-height: 1.6; font-family: 'Segoe UI', sans-serif;}
+    
+    #story-output { white-space: pre-wrap; padding: 15px; border-radius: 8px; background: #fdf2e9; border-left: 4px solid #e67e22; line-height: 1.6; margin-top: 10px; display: none; }
+    
+    /* Giao diện Game */
+    .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
+    .caro-container { max-width: 100%; max-height: 350px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 8px; margin: 15px 0; background: #ecf0f1; }
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 35px); gap: 1px; background: #bdc3c7; width: max-content; padding: 1px;}
+    .caro-cell { width: 35px; height: 35px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; cursor: pointer; user-select: none;}
+    .caro-cell:hover { background: #f1f2f6; }
+    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; }
+
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 10px; } }
   </style>
 </head>
 <body>
-  <div class="panel">
-    <h1>💬 Chat với AI</h1>
-    <textarea id="message" placeholder="Nhập câu hỏi..."></textarea>
-    <button id="send">Gửi</button>
-    <button id="clear">Xóa trí nhớ</button>
-  </div>
-  
-  <div class="panel">
-    <h2>👻 Kể Truyện Ma</h2>
-    <input id="story-topic" placeholder="Ví dụ: Làng quê, bệnh viện, chung cư...">
-    <button id="create-story">Bắt đầu kể</button>
-    <div id="story-output">Kết quả sẽ hiện ở đây...</div>
-  </div>
+  <main>
+    <section class="panel" style="text-align: center; background: #34495e; color: white;">
+      <h1 style="color: white;">🚀 Trợ lý Web AI Đa Năng</h1>
+      <p style="margin: 0; font-size: 14px; opacity: 0.8;">Chatbot Thông Minh - Kể Chuyện - Minigame Giải Trí</p>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>💬 Chat AI</h2>
+        <textarea id="message" placeholder="Hỏi tôi bất cứ điều gì..."></textarea>
+        <div class="row">
+          <button id="send">Gửi tin nhắn</button>
+          <button class="secondary" id="clear">Làm mới</button>
+          <label style="font-size: 14px; cursor: pointer;"><input id="search" type="checkbox" checked> Bật kết nối Web</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>👻 Kể Truyện Ma</h2>
+        <input id="story-topic" placeholder="Nhập chủ đề (VD: trường học, bệnh viện...)">
+        <div class="row">
+          <button id="create-story" style="background-color: #8e44ad;">Sáng tác truyện</button>
+        </div>
+        <div id="story-output"></div>
+      </div>
+    </section>
+    
+    <section class="panel">
+      <h2>Kết quả Chat</h2>
+      <div id="chat-status" class="status-badge" style="display: none;"></div>
+      <pre id="result">Hệ thống đã sẵn sàng hỗ trợ bạn.</pre>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>🧩 Đuổi Hình Bắt Chữ</h2>
+        <div class="game-board" id="game-display">❓❔❓</div>
+        <div class="row" style="display: flex;">
+          <input id="game-guess" placeholder="Nhập đáp án của bạn..." style="flex: 1; margin-bottom: 0;">
+          <button id="btn-guess">Đoán</button>
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
+          <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
+        </div>
+        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: #2980b9;">Sẵn sàng!</div>
+      </div>
+
+      <div class="panel">
+        <h2>⭕ Cờ Caro (Đấu với AI)</h2>
+        <div id="caro-status" style="text-align: center; font-weight: bold; color: #27ae60; margin-top: 5px;">Bạn đi trước (Đánh X)</div>
+        <div class="caro-container">
+            <div class="caro-grid" id="caro-board"></div>
+        </div>
+        <div class="row" style="justify-content: center;">
+          <button class="secondary" id="btn-caro-reset">Đầu hàng / Chơi ván mới</button>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    document.querySelector("#send").onclick = async () => {
-      const res = await fetch("/api/chat", { method: "POST", body: JSON.stringify({message: document.querySelector("#message").value}), headers: {"Content-Type": "application/json"} });
-      const data = await res.json();
-      alert(data.reply);
-    };
-    
-    document.querySelector("#create-story").onclick = async () => {
-      const topic = document.querySelector("#story-topic").value;
-      document.querySelector("#story-output").textContent = "Đang triệu hồi linh hồn... đợi tí nhé...";
-      const res = await fetch("/api/ghost_story", { method: "POST", body: JSON.stringify({topic}), headers: {"Content-Type": "application/json"} });
-      const data = await res.json();
-      document.querySelector("#story-output").textContent = data.story || data.error;
-    };
+    async function postJson(url, data) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ.");
+      return json;
+    }
 
-    document.querySelector("#clear").onclick = async () => {
-      await fetch("/api/clear", { method: "POST" });
-      alert("Đã xóa!");
-    };
-  </script>
-</body>
-</html>
+    // ================= LOGIC CHAT AI =================
+    document.querySelector("#send").addEventListener("click", async () => {
+      const message = document.querySelector("#message").value.trim();
+      const search = document.querySelector("#search").checked;
+      const resultBox = document.querySelector("#result");
+      const statusBadge = document.querySelector("#chat-status");
+      
+      if (!message) return;
+      
+      // Giao diện Loading
+      statusBadge.style.display = "inline-block";
+      statusBadge.className = "status-badge loading";
+      statusBadge.textContent = "⏳ Đang xử lý...";
+      resultBox.textContent = "Vui lòng chờ trong giây lát...";
+      
+      try {
+        const data = await postJson("/api/chat", { message, search });
+        // Cập nhật giao diện sau khi có kết quả
+        statusBadge.className = data.search_status.includes("Lỗi") ? "status-badge offline" : "status-badge online";
+        statusBadge.textContent = data.search_status;
+        resultBox.textContent = data.reply;
+      } catch (err) { 
+        statusBadge.className = "status-badge offline";
+        statusBadge.textContent = "❌ Lỗi hệ thống";
+        resultBox.textContent = err.message; 
+      }
+    });
+
+    document.querySelector("#clear").addEventListener("click", async () => {
+      await postJson("/api/clear", {});
+      document.querySelector("#message").value = "";
+      document.querySelector("#chat-status").style.display = "none";
+      document.querySelector("#result").textContent = "Đã làm mới phiên trò chuyện.";
+    });
+
+    // ================= LOGIC KỂ TRUYỆN MA =================
+    document.querySelector("#create-story").addEventListener("click", async () => {
+      const topic = document.querySelector("#story-topic").value.trim();
+      const output = document.querySelector("#story-output");
+      output.style.display = "block";
+      output.textContent = "⏳ Đang kết nối với thế giới tâm linh để lấy cốt truyện...";
+      
+      try {
+        const data = await postJson("/api/ghost_story", { topic });
+        output.textContent = data.story || data.error;
+      } catch (err) { 
+        output.textContent = "Lỗi kết nối: " + err.message; 
+      }
+    });
+
+    // ================= GAME ĐUỔI HÌNH BẮT CHỮ =================
+    const gameDisplay = document.querySelector("#game-display");
+    const gameGuess = document.querySelector("#game-guess");
+    const gameStatus = document.querySelector("#game-status");
+
+    document.querySelector("#btn-new-riddle").addEventListener("click", async () => {
+      gameDisplay.textContent = "⏳";
+      gameGuess.value = "";
+      try {
+        const data = await postJson("/api/game/riddle", {});
+        gameDisplay.textContent = data.emoji;
+        gameStatus.textContent = "Đoán xem đây là từ gì?";
+        gameStatus.style.color = "#2980b9";
+      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; gameStatus.style.color = "#c0392b"; }
+    });
+
+    document.querySelector("#btn-guess").addEventListener("click", async () => {
+      const guess = gameGuess.value.trim();
+      if (!guess) return;
+      try {
+        const data = await postJson("/api/game/guess", { guess });
+        gameStatus.textContent = data.message;
+        gameStatus.style.color = data.correct ? "#27ae60" : "#d35400"; 
+      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; }
+    });
+
+    document.querySelector("#btn-show-answer").addEventListener("click", async () => {
+      try {
+        const data = await postJson("/api/game/answer", {});
+        gameStatus.textContent = data.message;
+        gameStatus.style.color = "#e67e22"; 
+        gameDisplay.textContent = "🙈"; 
+      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; }
+    });
+
+    gameGuess.addEventListener("keypress", (e) => { if (e.key === "Enter") document.querySelector("#btn-guess").click(); });
+
+    // ================= CỜ CARO 25x25 =================
+    const BOARD_SIZE = 25;
+    const caroBoard = document.getElementById('caro-board');
+    const caroStatus = document.getElementById('caro-status');
+    let caroState = [];
+    let caroActive = true;
+
+    function initCaroState() { caroState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill('')); }
+
+    function renderCaro() {
+      caroBoard.innerHTML = '';
+      for (let r = 0; r < BOARD_SIZE; r++) {
+          for (let c = 0; c < BOARD_SIZE; c++) {
+              const div = document.createElement('div');
+              div.className = 'caro-cell';
+              div.id = `cell-${r}-${c}`;
+              if (caroState[r][c] !== '') {
+                  div.style.color = caroState[r][c] === 'X' ? '#27ae60' : '#c0392b';
+                  div.textContent = caroState[r][c];
+              }
+              div.addEventListener('click', () => handleCaroClick(r, c));
+              caroBoard.appendChild(div);
+          }
+      }
+    }
+
+    function updateSingleCell(r, c) {
+        const cell = document.getElementById(`cell-${r}-${c}`);
+        cell.style.color = caroState[r][c] === 'X' ? '#27ae60' : '#c0392b';
+        cell.textContent = caroState[r][c];
+    }
+
+    function checkCaroWin(r, c, player) {
+        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]]; 
+        for (let [dr, dc] of dirs) {
+            let count = 1, winCells = [[r, c]];
+            let nr = r + dr, nc = c + dc;
+            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr += dr; nc += dc; }
+            nr = r - dr; nc = c - dc;
+            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr -= dr; nc -= dc; }
+            if (count >= 5) return winCells;
+        }
+        return null;
+    }
+
+    function evaluateScore(r, c, player) {
+        let score = 0;
+        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        for (let [dr, dc] of dirs) {
+            let count = 1, openEnds = 0;
+            let nr = r + dr, nc = c + dc;
+            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr += dr; nc += dc; }
+            if (nr >= 0 && nr < BOARD_
