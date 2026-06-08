@@ -2,57 +2,49 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <title>Trợ lý Web AI</title>
+  <title>Trợ lý AI - Kể truyện ma</title>
   <style>
-    body { font-family: sans-serif; background: #f4f6f8; padding: 20px; }
-    .panel { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .caro-grid { display: grid; grid-template-columns: repeat(20, 25px); width: max-content; }
-    .cell { width: 25px; height: 25px; border: 1px solid #ccc; cursor: pointer; text-align: center; font-weight: bold; }
+    body { font-family: sans-serif; background: #1a1a2e; color: #fff; padding: 20px; }
+    .panel { background: #16213e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    textarea, input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+    button { padding: 10px 20px; background: #e94560; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+    #story-output { white-space: pre-wrap; padding: 15px; background: #0f3460; border-left: 5px solid #e94560; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="panel">
-    <h1>Chat AI</h1>
-    <textarea id="msg"></textarea>
+    <h1>💬 Chat với AI</h1>
+    <textarea id="message" placeholder="Nhập câu hỏi..."></textarea>
     <button id="send">Gửi</button>
+    <button id="clear">Xóa trí nhớ</button>
   </div>
   
   <div class="panel">
-    <h2>Game Đuổi Hình</h2>
-    <div id="emoji" style="font-size: 40px;">❓</div>
-    <input id="guess" placeholder="Đáp án...">
-    <button id="btn-guess">Đoán</button>
-    <button id="btn-riddle">Lấy câu đố</button>
-  </div>
-
-  <div class="panel">
-    <h2>Cờ Caro</h2>
-    <div id="caro" class="caro-grid"></div>
-    <button onclick="location.reload()">Chơi ván mới</button>
+    <h2>👻 Kể Truyện Ma</h2>
+    <input id="story-topic" placeholder="Ví dụ: Làng quê, bệnh viện, chung cư...">
+    <button id="create-story">Bắt đầu kể</button>
+    <div id="story-output">Kết quả sẽ hiện ở đây...</div>
   </div>
 
   <script>
-    // Logic Chat
     document.querySelector("#send").onclick = async () => {
-        const res = await fetch("/api/chat", {method: "POST", body: JSON.stringify({message: document.querySelector("#msg").value}), headers: {"Content-Type": "application/json"}});
-        alert((await res.json()).reply);
+      const res = await fetch("/api/chat", { method: "POST", body: JSON.stringify({message: document.querySelector("#message").value}), headers: {"Content-Type": "application/json"} });
+      const data = await res.json();
+      alert(data.reply);
+    };
+    
+    document.querySelector("#create-story").onclick = async () => {
+      const topic = document.querySelector("#story-topic").value;
+      document.querySelector("#story-output").textContent = "Đang triệu hồi linh hồn... đợi tí nhé...";
+      const res = await fetch("/api/ghost_story", { method: "POST", body: JSON.stringify({topic}), headers: {"Content-Type": "application/json"} });
+      const data = await res.json();
+      document.querySelector("#story-output").textContent = data.story || data.error;
     };
 
-    // Logic Caro (Chạy hoàn toàn tại trình duyệt)
-    const board = document.getElementById('caro');
-    for(let i=0; i<400; i++) {
-        const div = document.createElement('div');
-        div.className = 'cell';
-        div.onclick = function() { 
-            this.textContent = 'X'; 
-            // Bot đánh vào ô trống đầu tiên
-            setTimeout(() => {
-                const empty = Array.from(document.querySelectorAll('.cell')).find(c => !c.textContent);
-                if(empty) empty.textContent = 'O';
-            }, 300);
-        };
-        board.appendChild(div);
-    }
+    document.querySelector("#clear").onclick = async () => {
+      await fetch("/api/clear", { method: "POST" });
+      alert("Đã xóa!");
+    };
   </script>
 </body>
 </html>
