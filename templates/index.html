@@ -128,32 +128,24 @@
       resultBox.textContent = "Đã xóa trí nhớ tạm.";
     });
 
-    // ================= TẠO STICKER ĐÃ SỬA LỖI =================
-    document.querySelector("#create-sticker").addEventListener("click", () => {
+    // ================= TẠO STICKER: GỌI BACKEND TRẢ BASE64 =================
+    document.querySelector("#create-sticker").addEventListener("click", async () => {
       const prompt = document.querySelector("#sticker-prompt").value.trim();
       const status = document.querySelector("#sticker-status");
       const img = document.querySelector("#sticker-img");
       if (!prompt) { status.textContent = "Nhập mô tả đi bạn ơi!"; return; }
       
       status.textContent = "Đang vẽ sticker (Đợi khoảng 5-10s)...";
-      img.style.display = "none"; // Ẩn ảnh cũ đi
+      img.style.display = "none";
 
-      // Cấu hình URL
-      const safePrompt = encodeURIComponent("Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, " + prompt);
-      const imageUrl = `https://image.pollinations.ai/prompt/${safePrompt}?nologo=true&width=512&height=512`;
-
-      // Gắn link trực tiếp vào thẻ img để trình duyệt tự xử lý
-      img.src = imageUrl;
-      
-      img.onload = function() {
-        img.style.display = "block"; // Bật ảnh lên khi tải xong
+      try {
+        const data = await postJson("/api/sticker", { prompt });
+        img.src = data.sticker_url;
+        img.style.display = "block";
         status.textContent = "Tạo thành công! (Chuột phải hoặc đè tay vào ảnh để Copy/Lưu)";
-      };
-      
-      img.onerror = function() {
-        status.textContent = "Lỗi mạng hoặc server vẽ quá tải. Bạn hãy bấm tạo lại nhé!";
-        img.style.display = "none";
-      };
+      } catch (err) { 
+        status.textContent = err.message; 
+      }
     });
 
     // ================= GAME: ĐUỔI HÌNH BẮT CHỮ =================
