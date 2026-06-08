@@ -28,7 +28,7 @@
   <main>
     <section class="panel">
       <h1>Trợ lý Web AI</h1>
-      <p style="color: #5b6875; margin: 0;">Chat AI, tạo Sticker Zalo trong suốt & Render Video bằng Gemini.</p>
+      <p style="color: #5b6875; margin: 0;">Chat AI nối mạng tự động, tạo Sticker Zalo & Render Video bằng Gemini.</p>
     </section>
 
     <section class="grid">
@@ -43,7 +43,7 @@
       </div>
 
       <div class="panel">
-        <h2>Tạo Sticker (Imagen 3)</h2>
+        <h2>Tạo Sticker (Imagen 4.0)</h2>
         <input id="sticker-prompt" placeholder="VD: một chú chó mặt xệ đang uống trà sữa">
         <div class="row">
           <button id="create-sticker">Tạo Sticker</button>
@@ -56,15 +56,14 @@
     </section>
 
     <section class="panel">
-      <h2>Tạo Video từ Ảnh (Veo 3)</h2>
-      <input id="video-image-url" placeholder="Dán link ảnh (http...) vào đây">
+      <h2>Tạo Video (Veo 3.1)</h2>
       <input id="video-prompt" placeholder="Mô tả chuyển động (VD: mặt nước gợn sóng, lá rơi...)">
       <div class="row">
         <button id="create-video">Tạo Video</button>
       </div>
       <div class="media-box" id="video-status"></div>
       <div class="media-box">
-        <video id="video-player" controls></video>
+        <video id="video-player" controls autoplay loop></video>
       </div>
     </section>
 
@@ -79,7 +78,13 @@
 
     async function postJson(url, data) {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const json = await res.json();
+      const text = await res.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (err) {
+        throw new Error(`Lỗi giao tiếp máy chủ (URL: ${url}). Kiểm tra lại xem backend đã build xong chưa.`);
+      }
       if (!res.ok) throw new Error(json.error || "Lỗi máy chủ.");
       return json;
     }
@@ -100,8 +105,9 @@
       const prompt = document.querySelector("#sticker-prompt").value.trim();
       const status = document.querySelector("#sticker-status");
       const img = document.querySelector("#sticker-img");
+      if (!prompt) { status.textContent = "Nhập mô tả đã ông nội!"; return; }
       img.style.display = "none";
-      status.textContent = "Đang vẽ sticker... Vui lòng đợi tầm 10-15s.";
+      status.textContent = "Đang vẽ sticker bằng Imagen 4... Vui lòng đợi.";
       try {
         const data = await postJson("/api/sticker", { prompt });
         img.src = data.sticker_url;
@@ -110,19 +116,47 @@
       } catch (err) { status.textContent = err.message; }
     });
 
-    // Tạo Video
+    // Tạo Video (Dùng Polling, Đã đồng bộ API)
     document.querySelector("#create-video").addEventListener("click", async () => {
-      const image_url = document.querySelector("#video-image-url").value.trim();
       const prompt = document.querySelector("#video-prompt").value.trim();
       const status = document.querySelector("#video-status");
       const video = document.querySelector("#video-player");
+      
+      if (!prompt) { status.textContent = "Nhập mô tả đã!"; return; }
+      
       video.style.display = "none";
-      status.textContent = "Đang render video... Có thể mất 30-60s.";
+      status.textContent = "Đang gửi lệnh render cho máy chủ Google...";
+      
       try {
-        const data = await postJson("/api/video", { image_url, prompt });
-        video.src = data.video_url;
-        video.style.display = "block";
-        status.textContent = "Render xong! Bấm Play để xem.";
+        // Gửi lệnh Start
+        const startData = await postJson("/api/video/start", { prompt });
+        const opName = startData.operation;
+        
+        let attempts = 0;
+        const maxAttempts = 20; // Polling trong 3 phút
+        
+        const pollInterval = setInterval(async () => {
+            attempts++;
+            status.textContent = `Đang render video bằng Veo... (Check lần: ${attempts}/${maxAttempts}). Mất khoảng 1-2 phút.`;
+            
+            try {
+                // Check tiến trình Status
+                const pollData = await postJson("/api/video/status", { operation: opName });
+                if (pollData.done) {
+                    clearInterval(pollInterval);
+                    video.src = pollData.video_url;
+                    video.style.display = "block";
+                    status.textContent = "Render xong! Bấm Play để xem.";
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(pollInterval);
+                    status.textContent = "Render lâu quá timeout mẹ rồi. Thử phát nữa xem sao.";
+                }
+            } catch(e) {
+                clearInterval(pollInterval);
+                status.textContent = e.message;
+            }
+        }, 10000);
+
       } catch (err) { status.textContent = err.message; }
     });
 
