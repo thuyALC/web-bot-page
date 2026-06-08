@@ -3,28 +3,16 @@ import json
 import random
 import unicodedata
 import urllib.parse
+import base64
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
-
-# Bật lại chế độ tự động thử lại nếu Google quá tải
-retry_strategy = Retry(
-    total=3, 
-    status_forcelist=[429, 500, 502, 503, 504],
-    allowed_methods=["POST", "GET"],
-    backoff_factor=1
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-http = requests.Session()
-http.mount("https://", adapter)
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
@@ -52,10 +40,15 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
-        # Tăng thời gian chờ lên 30s để AI kịp lướt Google đọc tin tức
-        res = http.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
-        res.raise_for_status()
+        # Đơn giản hóa request, thời gian chờ 45s, không tự động retry để tránh treo server
+        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
         
+        # Nếu Google trả về lỗi, in thẳng lỗi ra để biết đường sửa
+        if res.status_code != 200:
+            err_data = res.json()
+            err_msg = err_data.get("error", {}).get("message", str(res.text))
+            return f"Lỗi từ Google: {err_msg}", "Lỗi API", chat_history
+            
         response_data = res.json()
         reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
@@ -72,7 +65,9 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         
         return reply, status_text, chat_history
     except requests.exceptions.RequestException as e:
-        return "Mạng nghẽn. Nếu mạng chậm quá, bạn thử TẮT dấu tích [Nối mạng web] rồi gửi lại xem sao nhé!", "Lỗi kết nối", chat_history
+        return f"Lỗi kết nối máy chủ: {str(e)}", "Lỗi Timeout", chat_history
+    except Exception as e:
+        return f"Lỗi kỹ thuật: {str(e)}", "Lỗi Code", chat_history
 
 @app.get("/")
 def index():
@@ -93,6 +88,33 @@ def chat():
     return jsonify({"reply": reply, "search_status": search_status})
 
 
+# ================= STICKER VƯỢT TƯỜNG LỬA TRÌNH DUYỆT =================
+@app.post("/api/sticker")
+def create_sticker():
+    payload = request.get_json(force=True)
+    prompt = (payload.get("prompt") or "").strip()
+
+    if not prompt:
+        return jsonify({"error": "Cần có mô tả."}), 400
+
+    try:
+        # Cấu hình lệnh vẽ
+        safe_prompt = urllib.parse.quote(f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}")
+        seed = random.randint(1, 999999) # Chống dính cache ảnh cũ
+        image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?nologo=true&width=512&height=512&seed={seed}"
+        
+        # Server tải ảnh trực tiếp (né CORS của trình duyệt)
+        res = requests.get(image_url, timeout=45)
+        if res.status_code == 200:
+            # Gói ảnh thành chuỗi Base64 trả thẳng về Web
+            img_b64 = base64.b64encode(res.content).decode('utf-8')
+            return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
+        else:
+            return jsonify({"error": "Server vẽ ảnh bị sập, thử lại sau."}), 500
+    except Exception as e:
+        return jsonify({"error": f"Lỗi tải ảnh: {str(e)}"}), 500
+
+# ================= TRÒ CHƠI =================
 NGAN_HANG_CAU_DO = [
     {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
     {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
