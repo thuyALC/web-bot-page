@@ -3,7 +3,6 @@ import json
 import random
 import unicodedata
 import urllib.parse
-import base64
 import re
 from datetime import datetime
 import xml.etree.ElementTree as ET
@@ -16,7 +15,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
-# Đổi sang Llama 3.3 70B vì model DeepSeek cũ đã bị Groq khai tử
+# Tự động nhận Llama 3.3 xịn nhất. XÓA BIẾN MODEL_NAME TRÊN RENDER ĐI NHÉ!
 MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile") 
 
 def get_web_data(query: str) -> str:
@@ -90,7 +89,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    # Phóng thẳng HF_TOKEN xuống cho trình duyệt tự lấy để vẽ ảnh
+    return render_template("index.html", hf_token=HF_TOKEN)
 
 @app.post("/api/chat")
 def chat():
@@ -106,34 +106,8 @@ def chat():
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
-@app.post("/api/sticker")
-def create_sticker():
-    payload = request.get_json(force=True)
-    prompt = (payload.get("prompt") or "").strip()
 
-    if not prompt:
-        return jsonify({"error": "Cần có mô tả."}), 400
-    if not HF_TOKEN:
-        return jsonify({"error": "Chưa cấu hình HF_TOKEN (Hugging Face) trên server."}), 500
-
-    try:
-        url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
-        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-        
-        sticker_prompt = f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}"
-        api_payload = {"inputs": sticker_prompt}
-        
-        res = requests.post(url, headers=headers, json=api_payload, timeout=45)
-        
-        if res.status_code != 200:
-            return jsonify({"error": f"Lỗi vẽ ảnh HuggingFace (Mã {res.status_code}). Có thể API đang bận."}), 500
-            
-        img_b64 = base64.b64encode(res.content).decode('utf-8')
-        return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
-
-    except Exception as e:
-        return jsonify({"error": f"Lỗi mạng server (khởi động lại server để fix): {str(e)}"}), 500
-
+# ================= TRÒ CHƠI =================
 NGAN_HANG_CAU_DO = [
     {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
     {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
