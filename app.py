@@ -6,6 +6,8 @@ import urllib.parse
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
@@ -13,8 +15,16 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
-# Bỏ retry để tránh việc hệ thống tự động chờ đợi làm web bị treo lâu
+# Bật lại chế độ tự động thử lại nếu Google quá tải
+retry_strategy = Retry(
+    total=3, 
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["POST", "GET"],
+    backoff_factor=1
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
 http = requests.Session()
+http.mount("https://", adapter)
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
@@ -42,8 +52,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
-        # Đặt timeout ngắn hơn để nếu lỗi thì báo luôn
-        res = http.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+        # Tăng thời gian chờ lên 30s để AI kịp lướt Google đọc tin tức
+        res = http.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
         res.raise_for_status()
         
         response_data = res.json()
@@ -82,27 +92,7 @@ def chat():
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
-# ================= TÍNH NĂNG STICKER (SIÊU TỐC - KHÔNG LỖI) =================
-@app.post("/api/sticker")
-def create_sticker():
-    payload = request.get_json(force=True)
-    prompt = (payload.get("prompt") or "").strip()
 
-    if not prompt:
-        return jsonify({"error": "Cần có mô tả."}), 400
-
-    try:
-        # Chuyển sang API tạo ảnh Pollinations (Miễn phí, không giới hạn, nhanh gấp 5 lần)
-        safe_prompt = urllib.parse.quote(f"Vector sticker style, clean die-cut edge, transparent background, {prompt}")
-        image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?nologo=true&width=512&height=512"
-        
-        # Trả thẳng URL ảnh về trình duyệt
-        return jsonify({"sticker_url": image_url})
-    except Exception as e:
-        return jsonify({"error": "Lỗi tạo ảnh. Vui lòng thử lại sau."}), 500
-
-# ================= TÍNH NĂNG TRÒ CHƠI (SIÊU TỐC - 0 GIÂY) =================
-# Tạo sẵn ngân hàng câu đố, khỏi cần gọi AI mất thời gian
 NGAN_HANG_CAU_DO = [
     {"emoji": "👄💄", "dapan": "son môi", "giaithich": "Cái môi + thỏi son"},
     {"emoji": "🌽🎤", "dapan": "bắp hát", "giaithich": "Trái bắp + cái micro"},
@@ -119,7 +109,6 @@ NGAN_HANG_CAU_DO = [
 
 @app.post("/api/game/riddle")
 def game_riddle():
-    # Lấy random 1 câu đố lập tức
     cau_do = random.choice(NGAN_HANG_CAU_DO)
     session["game_dapan"] = cau_do["dapan"]
     session["game_giaithich"] = cau_do["giaithich"]
