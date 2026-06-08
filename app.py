@@ -11,7 +11,6 @@ MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 chat_history = []
 
 def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
-    """Gọi thẳng API Gemini, tự động xài Google Search xịn nếu bật"""
     if not GEMINI_API_KEY:
         return "Chưa cấu hình GEMINI_API_KEY trên server.", "Lỗi hệ thống"
 
@@ -36,7 +35,6 @@ def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
             "systemInstruction": {"parts": [{"text": system_instruction}]}
         }
         
-        # ĐÂY CHÍNH LÀ BÍ QUYẾT: Kích hoạt Google Search chính chủ cho API
         if use_search:
             payload["tools"] = [{"googleSearch": {}}]
         
@@ -46,7 +44,6 @@ def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
         response_data = res.json()
         reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
-        # Check xem AI có thực sự xài Google không để báo ra giao diện
         grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
         used_google = bool(grounding_meta.get("searchEntryPoint") or grounding_meta.get("groundingChunks"))
         
@@ -92,7 +89,8 @@ def create_sticker():
          return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY."}), 500
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={GEMINI_API_KEY}"
+        # Đường link chuẩn của thế hệ Imagen 4.0 mới nhất
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={GEMINI_API_KEY}"
         api_payload = {
             "instances": [{"prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}"}],
             "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
