@@ -1,4 +1,6 @@
 import os
+import json
+import unicodedata
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session
 import requests
@@ -6,18 +8,18 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 app = Flask(__name__)
-# Đặt secret key để mã hóa session (giúp lưu lịch sử chat riêng cho từng user)
+# Bắt buộc phải có secret_key để dùng Session cho Chat & Trò chơi
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
-# Cấu hình tự động thử lại nếu server Google quá tải (Lỗi 503, 429)
+# Chống sập nguồn khi Google quá tải
 retry_strategy = Retry(
-    total=3,  # Thử lại tối đa 3 lần
+    total=3, 
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["POST", "GET"],
-    backoff_factor=2 # Đợi 2s, 4s, 8s giữa các lần thử
+    backoff_factor=2
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
 http = requests.Session()
@@ -25,8 +27,7 @@ http.mount("https://", adapter)
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
     if not GEMINI_API_KEY:
-        return "Chưa cấu hình GEMINI_API_KEY trên server.", "Lỗi hệ thống", chat_history
-
+        return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi hệ thống", chat_history
     if chat_history is None:
         chat_history = []
 
@@ -39,7 +40,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
     contents = []
     for msg in chat_history[-10:]:
         contents.append({"role": msg["role"], "parts": [{"text": msg["content"]}]})
-        
     contents.append({"role": "user", "parts": [{"text": user_message}]})
 
     try:
@@ -48,8 +48,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
             "contents": contents,
             "systemInstruction": {"parts": [{"text": system_instruction}]}
         }
-        
-        # Đã fix lỗi: API yêu cầu dùng "google_search" thay vì "googleSearch"
         if use_search:
             payload["tools"] = [{"google_search": {}}]
         
@@ -59,7 +57,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         response_data = res.json()
         reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
-        # Cập nhật điều kiện check xem AI có dùng data mạng thật không
         grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
         used_google = bool(
             grounding_meta.get("webSearchQueries") or 
@@ -73,10 +70,8 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         
         return reply, status_text, chat_history
     except requests.exceptions.RequestException as e:
-        err_msg = "Google đang quá tải hoặc mạng có vấn đề. Bạn chờ xíu rồi gửi lại nhé."
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"Lỗi API AI: {e.response.text}") # Ghi log ẩn thay vì in lỗi cho user
-        return err_msg, "Lỗi kết nối", chat_history
+        print(f"Lỗi AI: {e}")
+        return "Mạng nghẽn hoặc Google quá tải. Đợi tí thử lại nha.", "Lỗi kết nối", chat_history
 
 @app.get("/")
 def index():
@@ -91,14 +86,9 @@ def chat():
     if not message:
         return jsonify({"error": "Nhập nội dung trước."}), 400
 
-    # Lấy lịch sử chat của user hiện tại
     history = session.get("chat_history", [])
-    
     reply, search_status, new_history = ask_ai(message, use_search, history)
-    
-    # Cập nhật lại lịch sử vào session
     session["chat_history"] = new_history
-    
     return jsonify({"reply": reply, "search_status": search_status})
 
 @app.post("/api/sticker")
@@ -109,75 +99,78 @@ def create_sticker():
     if not prompt:
         return jsonify({"error": "Cần có mô tả."}), 400
     if not GEMINI_API_KEY:
-         return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY."}), 500
+         return jsonify({"error": "Chưa cấu hình API Key."}), 500
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key={GEMINI_API_KEY}"
         api_payload = {
-            "instances": [{"prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}"}],
-            "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
+            "prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}",
+            "numberOfImages": 1,
+            "aspectRatio": "1:1",
+            "outputMimeType": "image/png"
         }
         res = http.post(url, json=api_payload, timeout=40)
         res.raise_for_status()
         data = res.json()
-        image_base64 = data['predictions'][0]['bytesBase64Encoded']
+        image_base64 = data["generatedImages"][0]["image"]["imageBytes"]
         return jsonify({"sticker_url": f"data:image/png;base64,{image_base64}"})
     except requests.exceptions.RequestException as e:
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"Lỗi Imagen: {e.response.text}")
-            if e.response.status_code == 400:
-                return jsonify({"error": "Mô tả vi phạm chính sách hoặc quá ngắn. Hãy thử mô tả khác rõ ràng hơn!"}), 400
-        return jsonify({"error": "Lỗi tạo ảnh. Vui lòng thử lại sau."}), 500
+        return jsonify({"error": "Lỗi tạo ảnh. Hãy đổi mô tả khác."}), 500
 
-@app.post("/api/video/start")
-def start_video():
-    payload = request.get_json(force=True)
-    prompt = (payload.get("prompt") or "").strip()
-
-    if not prompt:
-        return jsonify({"error": "Cần mô tả để làm video."}), 400
+# ================= TÍNH NĂNG TRÒ CHƠI =================
+@app.post("/api/game/riddle")
+def game_riddle():
     if not GEMINI_API_KEY:
-         return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY."}), 500
-
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key={GEMINI_API_KEY}"
-        api_payload = {"instances": [{"prompt": prompt}]}
-        res = http.post(url, json=api_payload, timeout=30)
-        res.raise_for_status()
-        
-        operation_name = res.json().get("name")
-        return jsonify({"operation": operation_name})
-    except requests.exceptions.RequestException as e:
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"Lỗi Veo Start: {e.response.text}")
-            if e.response.status_code == 429:
-                return jsonify({"error": "Đã hết lượt tạo video (Rate Limit). Vui lòng thử lại sau."}), 429
-        return jsonify({"error": "Không thể bắt đầu tạo video."}), 500
-
-@app.post("/api/video/status")
-def check_video():
-    payload = request.get_json(force=True)
-    op_name = payload.get("operation")
+        return jsonify({"error": "Chưa cấu hình API Key."}), 500
     
-    if not op_name:
-        return jsonify({"error": "Thiếu mã tiến trình."}), 400
-        
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/{op_name}?key={GEMINI_API_KEY}"
-        res = http.get(url, timeout=20)
-        res.raise_for_status()
-        data = res.json()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+        # Ép AI trả lời dưới dạng JSON chuẩn
+        prompt = """Bạn là quản trò chơi Đuổi Hình Bắt Chữ tiếng Việt.
+        Hãy tạo một câu đố bằng 2-3 Emoji. 
+        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá, 🍎📱 -> quả táo.
+        Chỉ trả về JSON với cấu trúc: {"emoji": "...", "dapan": "...", "giaithich": "..."}"""
         
-        if data.get("done"):
-            if "error" in data:
-                return jsonify({"error": data["error"].get("message", "Lỗi tạo video từ Google.")}), 500
-            uri = data["response"]["generateVideoResponse"]["generatedSamples"][0]["video"]["uri"]
-            return jsonify({"done": True, "video_url": uri})
-        else:
-            return jsonify({"done": False})
-    except Exception as exc:
-        print(f"Lỗi check video status: {exc}")
-        return jsonify({"error": "Lỗi kiểm tra trạng thái video."}), 500
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"responseMimeType": "application/json"}
+        }
+        res = http.post(url, json=payload, timeout=20)
+        res.raise_for_status()
+        
+        # Đọc JSON do AI tạo
+        data = res.json()
+        riddle_json = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+        
+        # Lưu đáp án vào trí nhớ riêng của user
+        session["game_dapan"] = riddle_json["dapan"].strip().lower()
+        session["game_giaithich"] = riddle_json["giaithich"]
+        
+        return jsonify({"emoji": riddle_json["emoji"]})
+    except Exception as e:
+        print(f"Lỗi tạo game: {e}")
+        return jsonify({"error": "AI đang bí ý tưởng. Nhấn tạo lại nhé!"}), 500
+
+@app.post("/api/game/guess")
+def game_guess():
+    payload = request.get_json(force=True)
+    guess = (payload.get("guess") or "").strip().lower()
+    dapan = session.get("game_dapan")
+    giaithich = session.get("game_giaithich")
+    
+    if not dapan:
+        return jsonify({"error": "Chưa có câu đố nào. Hãy lấy câu đố mới."}), 400
+        
+    # Hàm loại bỏ dấu tiếng Việt để người dùng gõ không dấu vẫn đúng
+    def normalize_vn(text):
+        return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('utf-8').replace(" ", "")
+        
+    if normalize_vn(guess) == normalize_vn(dapan):
+        session.pop("game_dapan", None) # Đoán trúng thì xóa đáp án
+        return jsonify({"correct": True, "message": f"Chính xác! Đáp án: {dapan.title()} ({giaithich})" })
+    else:
+        return jsonify({"correct": False, "message": "Sai rồi, đoán lại thử xem!"})
+# =======================================================
 
 @app.post("/api/clear")
 def clear():
