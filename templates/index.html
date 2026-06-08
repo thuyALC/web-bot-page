@@ -29,17 +29,15 @@
     
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
     
-    /* Huy hiệu trạng thái kết nối chuyên nghiệp */
     .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
     .status-badge.online { background-color: #d1f2e6; color: #16a085; }
     .status-badge.offline { background-color: #f2d7d5; color: #c0392b; }
     .status-badge.loading { background-color: #fcf3cf; color: #f39c12; }
     
-    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 15px; border-radius: 8px; background: #2c3e50; color: #ecf0f1; line-height: 1.6; font-family: 'Segoe UI', sans-serif;}
+    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 15px; border-radius: 8px; background: #2c3e50; color: #ecf0f1; line-height: 1.6; }
     
     #story-output { white-space: pre-wrap; padding: 15px; border-radius: 8px; background: #fdf2e9; border-left: 4px solid #e67e22; line-height: 1.6; margin-top: 10px; display: none; }
     
-    /* Giao diện Game */
     .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
     .caro-container { max-width: 100%; max-height: 350px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 8px; margin: 15px 0; background: #ecf0f1; }
     .caro-grid { display: grid; grid-template-columns: repeat(25, 35px); gap: 1px; background: #bdc3c7; width: max-content; padding: 1px;}
@@ -113,6 +111,13 @@
   </main>
 
   <script>
+    // Hàm rút gọn giúp code luôn an toàn không bị sập
+    const getEl = (id) => document.querySelector(id);
+    const addClick = (id, handler) => { 
+        const el = getEl(id); 
+        if (el) el.addEventListener("click", handler); 
+    };
+
     async function postJson(url, data) {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const json = await res.json();
@@ -121,15 +126,14 @@
     }
 
     // ================= LOGIC CHAT AI =================
-    document.querySelector("#send").addEventListener("click", async () => {
-      const message = document.querySelector("#message").value.trim();
-      const search = document.querySelector("#search").checked;
-      const resultBox = document.querySelector("#result");
-      const statusBadge = document.querySelector("#chat-status");
+    addClick("#send", async () => {
+      const message = getEl("#message")?.value.trim();
+      const search = getEl("#search")?.checked;
+      const resultBox = getEl("#result");
+      const statusBadge = getEl("#chat-status");
       
       if (!message) return;
       
-      // Giao diện Loading
       statusBadge.style.display = "inline-block";
       statusBadge.className = "status-badge loading";
       statusBadge.textContent = "⏳ Đang xử lý...";
@@ -137,7 +141,6 @@
       
       try {
         const data = await postJson("/api/chat", { message, search });
-        // Cập nhật giao diện sau khi có kết quả
         statusBadge.className = data.search_status.includes("Lỗi") ? "status-badge offline" : "status-badge online";
         statusBadge.textContent = data.search_status;
         resultBox.textContent = data.reply;
@@ -148,17 +151,19 @@
       }
     });
 
-    document.querySelector("#clear").addEventListener("click", async () => {
+    addClick("#clear", async () => {
       await postJson("/api/clear", {});
-      document.querySelector("#message").value = "";
-      document.querySelector("#chat-status").style.display = "none";
-      document.querySelector("#result").textContent = "Đã làm mới phiên trò chuyện.";
+      if(getEl("#message")) getEl("#message").value = "";
+      if(getEl("#chat-status")) getEl("#chat-status").style.display = "none";
+      if(getEl("#result")) getEl("#result").textContent = "Đã làm mới phiên trò chuyện.";
     });
 
     // ================= LOGIC KỂ TRUYỆN MA =================
-    document.querySelector("#create-story").addEventListener("click", async () => {
-      const topic = document.querySelector("#story-topic").value.trim();
-      const output = document.querySelector("#story-output");
+    addClick("#create-story", async () => {
+      const topic = getEl("#story-topic")?.value.trim() || "ngẫu nhiên";
+      const output = getEl("#story-output");
+      if(!output) return;
+      
       output.style.display = "block";
       output.textContent = "⏳ Đang kết nối với thế giới tâm linh để lấy cốt truyện...";
       
@@ -171,92 +176,9 @@
     });
 
     // ================= GAME ĐUỔI HÌNH BẮT CHỮ =================
-    const gameDisplay = document.querySelector("#game-display");
-    const gameGuess = document.querySelector("#game-guess");
-    const gameStatus = document.querySelector("#game-status");
+    const gameDisplay = getEl("#game-display");
+    const gameGuess = getEl("#game-guess");
+    const gameStatus = getEl("#game-status");
 
-    document.querySelector("#btn-new-riddle").addEventListener("click", async () => {
-      gameDisplay.textContent = "⏳";
-      gameGuess.value = "";
-      try {
-        const data = await postJson("/api/game/riddle", {});
-        gameDisplay.textContent = data.emoji;
-        gameStatus.textContent = "Đoán xem đây là từ gì?";
-        gameStatus.style.color = "#2980b9";
-      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; gameStatus.style.color = "#c0392b"; }
-    });
-
-    document.querySelector("#btn-guess").addEventListener("click", async () => {
-      const guess = gameGuess.value.trim();
-      if (!guess) return;
-      try {
-        const data = await postJson("/api/game/guess", { guess });
-        gameStatus.textContent = data.message;
-        gameStatus.style.color = data.correct ? "#27ae60" : "#d35400"; 
-      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; }
-    });
-
-    document.querySelector("#btn-show-answer").addEventListener("click", async () => {
-      try {
-        const data = await postJson("/api/game/answer", {});
-        gameStatus.textContent = data.message;
-        gameStatus.style.color = "#e67e22"; 
-        gameDisplay.textContent = "🙈"; 
-      } catch (err) { gameStatus.textContent = "Lỗi: " + err.message; }
-    });
-
-    gameGuess.addEventListener("keypress", (e) => { if (e.key === "Enter") document.querySelector("#btn-guess").click(); });
-
-    // ================= CỜ CARO 25x25 =================
-    const BOARD_SIZE = 25;
-    const caroBoard = document.getElementById('caro-board');
-    const caroStatus = document.getElementById('caro-status');
-    let caroState = [];
-    let caroActive = true;
-
-    function initCaroState() { caroState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill('')); }
-
-    function renderCaro() {
-      caroBoard.innerHTML = '';
-      for (let r = 0; r < BOARD_SIZE; r++) {
-          for (let c = 0; c < BOARD_SIZE; c++) {
-              const div = document.createElement('div');
-              div.className = 'caro-cell';
-              div.id = `cell-${r}-${c}`;
-              if (caroState[r][c] !== '') {
-                  div.style.color = caroState[r][c] === 'X' ? '#27ae60' : '#c0392b';
-                  div.textContent = caroState[r][c];
-              }
-              div.addEventListener('click', () => handleCaroClick(r, c));
-              caroBoard.appendChild(div);
-          }
-      }
-    }
-
-    function updateSingleCell(r, c) {
-        const cell = document.getElementById(`cell-${r}-${c}`);
-        cell.style.color = caroState[r][c] === 'X' ? '#27ae60' : '#c0392b';
-        cell.textContent = caroState[r][c];
-    }
-
-    function checkCaroWin(r, c, player) {
-        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]]; 
-        for (let [dr, dc] of dirs) {
-            let count = 1, winCells = [[r, c]];
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr += dr; nc += dc; }
-            nr = r - dr; nc = c - dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr -= dr; nc -= dc; }
-            if (count >= 5) return winCells;
-        }
-        return null;
-    }
-
-    function evaluateScore(r, c, player) {
-        let score = 0;
-        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
-        for (let [dr, dc] of dirs) {
-            let count = 1, openEnds = 0;
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr += dr; nc += dc; }
-            if (nr >= 0 && nr < BOARD_
+    addClick("#btn-new-riddle", async () => {
+      if(game
