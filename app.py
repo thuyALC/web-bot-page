@@ -2,86 +2,64 @@ import os
 import json
 import random
 import unicodedata
-import urllib.parse
-import re
 from datetime import datetime
-import xml.etree.ElementTree as ET
 from flask import Flask, jsonify, render_template, request, session
 import requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-
-# Tự động nhận Llama 3.3 xịn nhất. XÓA BIẾN MODEL_NAME TRÊN RENDER ĐI NHÉ!
-MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile") 
-
-def get_web_data(query: str) -> str:
-    if len(query) < 2:
-        return ""
-    try:
-        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=vi&gl=VN&ceid=VN:vi"
-        res = requests.get(url, timeout=10)
-        root = ET.fromstring(res.text)
-        items = root.findall(".//item")[:3]
-        if not items:
-            return ""
-        results = [f"{item.findtext('title')} (Nguồn: {item.findtext('link')})" for item in items]
-        return "\n\n".join(results)
-    except Exception:
-        return ""
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
-    if not GROQ_API_KEY:
-        return "Chưa cấu hình GROQ_API_KEY trên server.", "Lỗi hệ thống", chat_history
+    if not GEMINI_API_KEY:
+        return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi hệ thống", chat_history
     if chat_history is None:
         chat_history = []
 
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     system_instruction = (
-        "Bạn là trợ lý tiếng Việt. Hãy trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
+        "Bạn là trợ lý tiếng Việt, trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
         f"Thời gian hiện tại: {now_str}."
     )
 
-    web_data = ""
-    search_status = "Dùng não (Tắt mạng)"
-    if use_search:
-        web_data = get_web_data(user_message)
-        if web_data:
-            system_instruction += f"\n\nTin tức mới nhất để tham khảo:\n{web_data}"
-            search_status = "Đã cào Google News"
-        else:
-            search_status = "Không tìm thấy data web"
-
-    messages = [{"role": "system", "content": system_instruction}]
+    contents = []
     for msg in chat_history[-10:]:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": user_message})
+        contents.append({"role": msg["role"], "parts": [{"text": msg["content"]}]})
+    contents.append({"role": "user", "parts": [{"text": user_message}]})
 
     try:
-        url = "https://api.groq.com/openai/v1/chat/completions"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
         payload = {
-            "model": MODEL_NAME,
-            "messages": messages
+            "contents": contents,
+            "systemInstruction": {"parts": [{"text": system_instruction}]}
         }
-        res = requests.post(url, headers={"Authorization": f"Bearer {GROQ_API_KEY}"}, json=payload, timeout=45)
+        if use_search:
+            payload["tools"] = [{"google_search": {}}]
+        
+        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
         
         if res.status_code != 200:
             err_data = res.json()
-            return f"Lỗi từ Groq: {err_data}", "Lỗi API", chat_history
+            err_msg = err_data.get("error", {}).get("message", str(res.text))
+            return f"Lỗi từ Google: {err_msg}", "Lỗi API", chat_history
             
-        reply = res.json()["choices"][0]["message"]["content"]
+        response_data = res.json()
+        reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
-        reply_clean = re.sub(r'<think>.*?</think>', '', reply, flags=re.DOTALL).strip()
-        if not reply_clean:
-            reply_clean = reply
+        grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
+        used_google = bool(
+            grounding_meta.get("webSearchQueries") or 
+            grounding_meta.get("searchEntryPoint") or 
+            grounding_meta.get("groundingChunks")
+        )
+        status_text = "Nối mạng Google Search" if used_google else ("Tắt mạng" if not use_search else "Dùng não")
         
         chat_history.append({"role": "user", "content": user_message})
-        chat_history.append({"role": "assistant", "content": reply_clean})
+        chat_history.append({"role": "model", "content": reply})
         
-        return reply_clean, search_status, chat_history
+        return reply, status_text, chat_history
     except requests.exceptions.RequestException as e:
         return f"Lỗi kết nối máy chủ: {str(e)}", "Lỗi Timeout", chat_history
     except Exception as e:
@@ -89,8 +67,7 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
 
 @app.get("/")
 def index():
-    # Phóng thẳng HF_TOKEN xuống cho trình duyệt tự lấy để vẽ ảnh
-    return render_template("index.html", hf_token=HF_TOKEN)
+    return render_template("index.html")
 
 @app.post("/api/chat")
 def chat():
@@ -106,6 +83,35 @@ def chat():
     session["chat_history"] = new_history
     return jsonify({"reply": reply, "search_status": search_status})
 
+
+# ================= KỂ TRUYỆN MA =================
+@app.post("/api/ghost_story")
+def ghost_story():
+    payload = request.get_json(force=True)
+    topic = (payload.get("topic") or "đêm khuya").strip()
+
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY trên server."}), 500
+
+    prompt = f"Hãy sáng tác một câu chuyện ma ngắn (khoảng 300-500 chữ) thật rùng rợn, bất ngờ và ám ảnh về chủ đề: {topic}. Giọng văn cuốn hút, rợn gáy."
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+        api_payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}]
+        }
+        res = requests.post(url, json=api_payload, headers={"Content-Type": "application/json"}, timeout=45)
+        
+        if res.status_code != 200:
+            err_data = res.json()
+            err_msg = err_data.get("error", {}).get("message", str(res.text))
+            return jsonify({"error": f"Lỗi API từ Google: {err_msg}"}), 500
+            
+        data = res.json()
+        story = data["candidates"][0]["content"]["parts"][0]["text"]
+        return jsonify({"story": story})
+    except Exception as e:
+        return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
 
 # ================= TRÒ CHƠI =================
 NGAN_HANG_CAU_DO = [
