@@ -4,65 +4,88 @@ import random
 import unicodedata
 import urllib.parse
 import base64
+import re
 from datetime import datetime
+import xml.etree.ElementTree as ET
 from flask import Flask, jsonify, render_template, request, session
 import requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-# Đã nâng cấp model lên bản 2.5-flash vì 1.5-flash bị Google ngừng hỗ trợ
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
+# Dùng 2 key này trên Render
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+HF_TOKEN = os.environ.get("HF_TOKEN", "")
+
+# Sử dụng model DeepSeek R1 siêu xịn của Groq
+MODEL_NAME = os.environ.get("MODEL_NAME", "deepseek-r1-distill-llama-70b") 
+
+def get_web_data(query: str) -> str:
+    """Dùng Google News RSS để cào data né chặn IP"""
+    if len(query) < 2:
+        return ""
+    try:
+        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=vi&gl=VN&ceid=VN:vi"
+        res = requests.get(url, timeout=10)
+        root = ET.fromstring(res.text)
+        items = root.findall(".//item")[:3]
+        if not items:
+            return ""
+        results = [f"{item.findtext('title')} (Nguồn: {item.findtext('link')})" for item in items]
+        return "\n\n".join(results)
+    except Exception:
+        return ""
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None) -> tuple[str, str, list]:
-    if not GEMINI_API_KEY:
-        return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi hệ thống", chat_history
+    if not GROQ_API_KEY:
+        return "Chưa cấu hình GROQ_API_KEY trên server.", "Lỗi hệ thống", chat_history
     if chat_history is None:
         chat_history = []
 
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     system_instruction = (
-        "Bạn là trợ lý tiếng Việt, trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
+        "Bạn là trợ lý tiếng Việt. Hãy trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
         f"Thời gian hiện tại: {now_str}."
     )
 
-    contents = []
+    web_data = ""
+    search_status = "Dùng não (Tắt mạng)"
+    if use_search:
+        web_data = get_web_data(user_message)
+        if web_data:
+            system_instruction += f"\n\nTin tức mới nhất để tham khảo:\n{web_data}"
+            search_status = "Đã cào Google News"
+        else:
+            search_status = "Không tìm thấy data web"
+
+    messages = [{"role": "system", "content": system_instruction}]
     for msg in chat_history[-10:]:
-        contents.append({"role": msg["role"], "parts": [{"text": msg["content"]}]})
-    contents.append({"role": "user", "parts": [{"text": user_message}]})
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": user_message})
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+        url = "https://api.groq.com/openai/v1/chat/completions"
         payload = {
-            "contents": contents,
-            "systemInstruction": {"parts": [{"text": system_instruction}]}
+            "model": MODEL_NAME,
+            "messages": messages
         }
-        if use_search:
-            payload["tools"] = [{"google_search": {}}]
-        
-        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
+        res = requests.post(url, headers={"Authorization": f"Bearer {GROQ_API_KEY}"}, json=payload, timeout=45)
         
         if res.status_code != 200:
             err_data = res.json()
-            err_msg = err_data.get("error", {}).get("message", str(res.text))
-            return f"Lỗi từ Google: {err_msg}", "Lỗi API", chat_history
+            return f"Lỗi từ Groq: {err_data}", "Lỗi API", chat_history
             
-        response_data = res.json()
-        reply = response_data["candidates"][0]["content"]["parts"][0]["text"]
+        reply = res.json()["choices"][0]["message"]["content"]
         
-        grounding_meta = response_data["candidates"][0].get("groundingMetadata", {})
-        used_google = bool(
-            grounding_meta.get("webSearchQueries") or 
-            grounding_meta.get("searchEntryPoint") or 
-            grounding_meta.get("groundingChunks")
-        )
-        status_text = "Nối mạng Google Search" if used_google else ("Tắt mạng" if not use_search else "Dùng não")
+        # Lọc thẻ <think> của dòng họ DeepSeek để câu trả lời gọn gàng hơn
+        reply_clean = re.sub(r'<think>.*?</think>', '', reply, flags=re.DOTALL).strip()
+        if not reply_clean:
+            reply_clean = reply
         
         chat_history.append({"role": "user", "content": user_message})
-        chat_history.append({"role": "model", "content": reply})
+        chat_history.append({"role": "assistant", "content": reply_clean})
         
-        return reply, status_text, chat_history
+        return reply_clean, search_status, chat_history
     except requests.exceptions.RequestException as e:
         return f"Lỗi kết nối máy chủ: {str(e)}", "Lỗi Timeout", chat_history
     except Exception as e:
@@ -87,7 +110,7 @@ def chat():
     return jsonify({"reply": reply, "search_status": search_status})
 
 
-# ================= STICKER VỚI GEMINI 2.5 FLASH IMAGE =================
+# ================= STICKER VỚI HUGGING FACE API =================
 @app.post("/api/sticker")
 def create_sticker():
     payload = request.get_json(force=True)
@@ -95,46 +118,26 @@ def create_sticker():
 
     if not prompt:
         return jsonify({"error": "Cần có mô tả."}), 400
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "Chưa cấu hình GEMINI_API_KEY."}), 500
+    if not HF_TOKEN:
+        return jsonify({"error": "Chưa cấu hình HF_TOKEN (Hugging Face) trên server."}), 500
 
     try:
-        # Sử dụng model gemini-2.5-flash-image chuyên tạo ảnh của Google bằng API Key hiện tại
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key={GEMINI_API_KEY}"
+        # Dùng SDXL của Stability AI trên Hugging Face
+        url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
         
         sticker_prompt = f"Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, {prompt}"
-        api_payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": sticker_prompt}]
-                }
-            ]
-        }
+        api_payload = {"inputs": sticker_prompt}
         
-        res = requests.post(url, json=api_payload, headers={"Content-Type": "application/json"}, timeout=45)
+        # Gọi thẳng API lấy bytes ảnh
+        res = requests.post(url, headers=headers, json=api_payload, timeout=45)
         
         if res.status_code != 200:
-            err_data = res.json()
-            err_msg = err_data.get("error", {}).get("message", str(res.text))
-            return jsonify({"error": f"Lỗi Google Image: {err_msg}"}), 500
+            return jsonify({"error": f"Lỗi vẽ ảnh HuggingFace (Mã {res.status_code}). Có thể API đang bận."}), 500
             
-        data = res.json()
-        
-        try:
-            parts = data["candidates"][0]["content"]["parts"]
-            image_part = next((p for p in parts if "inlineData" in p), None)
-            
-            if image_part:
-                img_b64 = image_part["inlineData"]["data"]
-                mime_type = image_part["inlineData"].get("mimeType", "image/png")
-                return jsonify({"sticker_url": f"data:{mime_type};base64,{img_b64}"})
-            else:
-                text_msg = parts[0].get("text", "Không tạo được ảnh (có thể do từ khóa nhạy cảm).")
-                return jsonify({"error": f"AI từ chối: {text_msg}"}), 400
-                
-        except (KeyError, IndexError):
-            return jsonify({"error": "Dữ liệu ảnh trả về bị lỗi định dạng."}), 500
+        # Đóng gói ảnh thành Base64 gửi về Frontend
+        img_b64 = base64.b64encode(res.content).decode('utf-8')
+        return jsonify({"sticker_url": f"data:image/jpeg;base64,{img_b64}"})
 
     except Exception as e:
         return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
