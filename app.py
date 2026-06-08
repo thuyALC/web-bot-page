@@ -99,19 +99,18 @@ def create_sticker():
          return jsonify({"error": "Chưa cấu hình API Key."}), 500
 
     try:
-        # Quay lại chuẩn REST API chính xác của Google AI Studio
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={GEMINI_API_KEY}"
+        # SỬA LỖI Ở ĐÂY: Hạ model xuống 001 theo đúng giới hạn của API miễn phí
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key={GEMINI_API_KEY}"
         api_payload = {
             "instances": [{"prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}"}],
             "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
         }
         res = http.post(url, json=api_payload, timeout=40)
         
-        # Bắt lỗi rõ ràng nếu Google từ chối lệnh
         if res.status_code != 200:
             err_data = res.json()
             err_msg = err_data.get("error", {}).get("message", "Lỗi tạo ảnh")
-            return jsonify({"error": f"Google từ chối vì: {err_msg}"}), 400
+            return jsonify({"error": f"Lỗi từ Google: {err_msg}"}), 400
 
         data = res.json()
         image_base64 = data["predictions"][0]["bytesBase64Encoded"]
@@ -127,8 +126,8 @@ def game_riddle():
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
         prompt = """Bạn là quản trò chơi Đuổi Hình Bắt Chữ tiếng Việt.
-        Hãy tạo một câu đố bằng 2-3 Emoji. 
-        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá.
+        Hãy tạo một câu đố bằng 2-3 Emoji. Cố gắng tạo các từ ghép thú vị.
+        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá, 👄💄 -> son môi.
         Chỉ trả về JSON với cấu trúc: {"emoji": "...", "dapan": "...", "giaithich": "..."}"""
         
         payload = {
@@ -165,6 +164,17 @@ def game_guess():
         return jsonify({"correct": True, "message": f"Chính xác! Đáp án: {dapan.title()} ({giaithich})" })
     else:
         return jsonify({"correct": False, "message": "Sai rồi, đoán lại thử xem!"})
+
+@app.post("/api/game/answer")
+def game_answer():
+    dapan = session.get("game_dapan")
+    giaithich = session.get("game_giaithich")
+    if not dapan:
+        return jsonify({"error": "Chưa có câu đố nào đang chơi."}), 400
+    
+    # Cho xem đáp án xong là xóa luôn, bắt chơi câu mới
+    session.pop("game_dapan", None)
+    return jsonify({"message": f"Bó tay à? Đáp án là: {dapan.title()} ({giaithich})" })
 
 @app.post("/api/clear")
 def clear():
