@@ -8,13 +8,11 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 app = Flask(__name__)
-# Bắt buộc phải có secret_key để dùng Session cho Chat & Trò chơi
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "khoa-bao-mat-tam-thoi-123")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash") 
 
-# Chống sập nguồn khi Google quá tải
 retry_strategy = Retry(
     total=3, 
     status_forcelist=[429, 500, 502, 503, 504],
@@ -70,7 +68,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         
         return reply, status_text, chat_history
     except requests.exceptions.RequestException as e:
-        print(f"Lỗi AI: {e}")
         return "Mạng nghẽn hoặc Google quá tải. Đợi tí thử lại nha.", "Lỗi kết nối", chat_history
 
 @app.get("/")
@@ -102,33 +99,36 @@ def create_sticker():
          return jsonify({"error": "Chưa cấu hình API Key."}), 500
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key={GEMINI_API_KEY}"
+        # Quay lại chuẩn REST API chính xác của Google AI Studio
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={GEMINI_API_KEY}"
         api_payload = {
-            "prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}",
-            "numberOfImages": 1,
-            "aspectRatio": "1:1",
-            "outputMimeType": "image/png"
+            "instances": [{"prompt": f"Vector sticker style, clean die-cut edge, transparent background, {prompt}"}],
+            "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
         }
         res = http.post(url, json=api_payload, timeout=40)
-        res.raise_for_status()
+        
+        # Bắt lỗi rõ ràng nếu Google từ chối lệnh
+        if res.status_code != 200:
+            err_data = res.json()
+            err_msg = err_data.get("error", {}).get("message", "Lỗi tạo ảnh")
+            return jsonify({"error": f"Google từ chối vì: {err_msg}"}), 400
+
         data = res.json()
-        image_base64 = data["generatedImages"][0]["image"]["imageBytes"]
+        image_base64 = data["predictions"][0]["bytesBase64Encoded"]
         return jsonify({"sticker_url": f"data:image/png;base64,{image_base64}"})
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Lỗi tạo ảnh. Hãy đổi mô tả khác."}), 500
+    except Exception as e:
+        return jsonify({"error": f"Lỗi kết nối: {str(e)}"}), 500
 
 # ================= TÍNH NĂNG TRÒ CHƠI =================
 @app.post("/api/game/riddle")
 def game_riddle():
     if not GEMINI_API_KEY:
         return jsonify({"error": "Chưa cấu hình API Key."}), 500
-    
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-        # Ép AI trả lời dưới dạng JSON chuẩn
         prompt = """Bạn là quản trò chơi Đuổi Hình Bắt Chữ tiếng Việt.
         Hãy tạo một câu đố bằng 2-3 Emoji. 
-        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá, 🍎📱 -> quả táo.
+        Ví dụ: 🌽🎤 -> bắp hát, 🐎🧊 -> ngựa đá.
         Chỉ trả về JSON với cấu trúc: {"emoji": "...", "dapan": "...", "giaithich": "..."}"""
         
         payload = {
@@ -138,18 +138,14 @@ def game_riddle():
         res = http.post(url, json=payload, timeout=20)
         res.raise_for_status()
         
-        # Đọc JSON do AI tạo
         data = res.json()
         riddle_json = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
         
-        # Lưu đáp án vào trí nhớ riêng của user
         session["game_dapan"] = riddle_json["dapan"].strip().lower()
         session["game_giaithich"] = riddle_json["giaithich"]
-        
         return jsonify({"emoji": riddle_json["emoji"]})
     except Exception as e:
-        print(f"Lỗi tạo game: {e}")
-        return jsonify({"error": "AI đang bí ý tưởng. Nhấn tạo lại nhé!"}), 500
+        return jsonify({"error": "AI đang bí ý tưởng. Nhấn lấy câu đố lại nhé!"}), 500
 
 @app.post("/api/game/guess")
 def game_guess():
@@ -161,16 +157,14 @@ def game_guess():
     if not dapan:
         return jsonify({"error": "Chưa có câu đố nào. Hãy lấy câu đố mới."}), 400
         
-    # Hàm loại bỏ dấu tiếng Việt để người dùng gõ không dấu vẫn đúng
     def normalize_vn(text):
         return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('utf-8').replace(" ", "")
         
     if normalize_vn(guess) == normalize_vn(dapan):
-        session.pop("game_dapan", None) # Đoán trúng thì xóa đáp án
+        session.pop("game_dapan", None)
         return jsonify({"correct": True, "message": f"Chính xác! Đáp án: {dapan.title()} ({giaithich})" })
     else:
         return jsonify({"correct": False, "message": "Sai rồi, đoán lại thử xem!"})
-# =======================================================
 
 @app.post("/api/clear")
 def clear():
