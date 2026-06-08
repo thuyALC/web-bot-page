@@ -2,114 +2,57 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Trợ lý Web AI</title>
   <style>
-    :root { color-scheme: light; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-    main { width: min(980px, 100%); display: grid; gap: 16px; }
-    .panel { background: #ffffff; border: 1px solid #d7dde3; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    textarea, input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-    button { padding: 10px 20px; background: #146c5c; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
-    .secondary { background: #3f4b57; }
-    .warning { background: #d35400; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    pre { background: #1a1a2e; color: #fff; padding: 15px; border-radius: 5px; white-space: pre-wrap; margin-top: 10px; }
-    .story-output { margin-top: 15px; padding: 15px; border-left: 4px solid #c0392b; background: #f9f9f9; display: none; }
-    
-    .game-board { font-size: 40px; text-align: center; padding: 15px; background: #eaf1f1; border-radius: 8px; margin-bottom: 10px; }
-    .caro-container { max-width: 100%; overflow: auto; border: 1px solid #ccc; background: #eaf1f1; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 30px); width: max-content; }
-    .caro-cell { width: 30px; height: 30px; border: 1px solid #ccc; text-align: center; cursor: pointer; background: #fff; font-weight: bold;}
-    .win-cell { background: #f1c40f !important; }
+    body { font-family: sans-serif; background: #f4f6f8; padding: 20px; }
+    .panel { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .caro-grid { display: grid; grid-template-columns: repeat(20, 25px); width: max-content; }
+    .cell { width: 25px; height: 25px; border: 1px solid #ccc; cursor: pointer; text-align: center; font-weight: bold; }
   </style>
 </head>
 <body>
-  <main>
-    <div class="panel">
-        <h1>Trợ lý Web AI</h1>
-        <textarea id="message" placeholder="Nhập câu hỏi..."></textarea>
-        <button id="send">Gửi</button>
-        <button id="clear" class="secondary">Xóa trí nhớ</button>
-    </div>
+  <div class="panel">
+    <h1>Chat AI</h1>
+    <textarea id="msg"></textarea>
+    <button id="send">Gửi</button>
+  </div>
+  
+  <div class="panel">
+    <h2>Game Đuổi Hình</h2>
+    <div id="emoji" style="font-size: 40px;">❓</div>
+    <input id="guess" placeholder="Đáp án...">
+    <button id="btn-guess">Đoán</button>
+    <button id="btn-riddle">Lấy câu đố</button>
+  </div>
 
-    <div class="grid">
-        <div class="panel">
-            <h2>👻 Kể Truyện Ma</h2>
-            <input id="story-topic" placeholder="Chủ đề (VD: Up ROM đêm khuya)...">
-            <button id="create-story">Bắt đầu kể</button>
-            <div id="story-output" class="story-output"></div>
-        </div>
-        <div class="panel">
-            <h2>🧩 Đuổi Hình Bắt Chữ</h2>
-            <div class="game-board" id="game-display">❓❔❓</div>
-            <input id="game-guess" placeholder="Đáp án...">
-            <button id="btn-guess">Đoán</button>
-            <button id="btn-new-riddle" class="secondary">Lấy câu đố</button>
-            <button id="btn-show-answer" class="warning">Xem đáp án</button>
-            <p id="game-status"></p>
-        </div>
-    </div>
-
-    <div class="panel">
-        <h2>⭕ Cờ Caro</h2>
-        <div id="caro-status">Bạn đi trước (X)</div>
-        <div class="caro-container"><div class="caro-grid" id="caro-board"></div></div>
-        <button id="btn-caro-reset" class="secondary">Chơi ván mới</button>
-    </div>
-
-    <pre id="result">Sẵn sàng.</pre>
-  </main>
+  <div class="panel">
+    <h2>Cờ Caro</h2>
+    <div id="caro" class="caro-grid"></div>
+    <button onclick="location.reload()">Chơi ván mới</button>
+  </div>
 
   <script>
-    // JS giữ nguyên logic cũ, chỉ cần chèn thêm phần render caro và game
-    const resultBox = document.querySelector("#result");
-    async function postJson(url, data) {
-      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      return await res.json();
-    }
-
+    // Logic Chat
     document.querySelector("#send").onclick = async () => {
-      const data = await postJson("/api/chat", {message: document.querySelector("#message").value, search: true});
-      resultBox.textContent = data.reply;
-    };
-    
-    document.querySelector("#create-story").onclick = async () => {
-      const data = await postJson("/api/ghost_story", {topic: document.querySelector("#story-topic").value});
-      document.querySelector("#story-output").style.display = "block";
-      document.querySelector("#story-output").textContent = data.story;
+        const res = await fetch("/api/chat", {method: "POST", body: JSON.stringify({message: document.querySelector("#msg").value}), headers: {"Content-Type": "application/json"}});
+        alert((await res.json()).reply);
     };
 
-    // Caro logic
-    const caroBoard = document.getElementById('caro-board');
-    let caroState = Array(25).fill(null).map(() => Array(25).fill(''));
-    function renderCaro() {
-        caroBoard.innerHTML = '';
-        for(let r=0; r<25; r++) for(let c=0; c<25; c++) {
-            const div = document.createElement('div');
-            div.className = 'caro-cell';
-            div.textContent = caroState[r][c];
-            div.onclick = () => { 
-                caroState[r][c] = 'X'; 
-                renderCaro(); 
-                // Bot đơn giản đánh vào ô trống đầu tiên tìm thấy
-                for(let i=0; i<25; i++) for(let j=0; j<25; j++) if(caroState[i][j]==''){ caroState[i][j]='O'; renderCaro(); return; }
-            };
-            caroBoard.appendChild(div);
-        }
+    // Logic Caro (Chạy hoàn toàn tại trình duyệt)
+    const board = document.getElementById('caro');
+    for(let i=0; i<400; i++) {
+        const div = document.createElement('div');
+        div.className = 'cell';
+        div.onclick = function() { 
+            this.textContent = 'X'; 
+            // Bot đánh vào ô trống đầu tiên
+            setTimeout(() => {
+                const empty = Array.from(document.querySelectorAll('.cell')).find(c => !c.textContent);
+                if(empty) empty.textContent = 'O';
+            }, 300);
+        };
+        board.appendChild(div);
     }
-    renderCaro();
-    document.querySelector("#btn-caro-reset").onclick = () => { caroState = Array(25).fill(null).map(() => Array(25).fill('')); renderCaro(); };
-    
-    // Game logic (Riddle) giữ nguyên như cũ
-    document.querySelector("#btn-new-riddle").onclick = async () => {
-        const data = await postJson("/api/game/riddle", {});
-        document.querySelector("#game-display").textContent = data.emoji;
-    };
-    document.querySelector("#btn-guess").onclick = async () => {
-        const data = await postJson("/api/game/guess", {guess: document.querySelector("#game-guess").value});
-        document.querySelector("#game-status").textContent = data.message;
-    };
   </script>
 </body>
 </html>
