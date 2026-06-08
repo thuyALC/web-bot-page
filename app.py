@@ -24,38 +24,47 @@ VIDEO_FORMATS = {
 
 def get_duckduckgo_data(query: str) -> str:
     try:
-        url = "https://lite.duckduckgo.com/lite/"
+        # 1. Chuyển sang bản html.duckduckgo.com (ổn định hơn lite)
+        url = "https://html.duckduckgo.com/html/"
         today = datetime.now().strftime("%d/%m/%Y")
         search_query = f"{query} moi nhat hom nay {today}"
+        
+        # 2. Thay User-Agent thật để không bị dính lỗi 403 Forbidden
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "vi,en-US;q=0.7,en;q=0.3",
+        }
+        
         res = requests.post(
             url,
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers=headers,
             data={"q": search_query},
-            timeout=8,
+            timeout=10,
         )
+        
+        if res.status_code != 200:
+            return ""
+
         soup = BeautifulSoup(res.text, "html.parser")
         results = []
-        links = soup.find_all("a", class_="result-link")
-        snippets = soup.find_all("td", class_="result-snippet")
-
-        for index, link in enumerate(links[:8]):
-            title = link.get_text(" ", strip=True)
-            href = link.get("href", "").strip()
-            snippet = snippets[index].get_text(" ", strip=True) if index < len(snippets) else ""
+        
+        # 3. Cấu trúc HTML của trang /html/ khác với /lite/
+        # Các kết quả nằm trong class "result-links"
+        for item in soup.find_all("div", class_="result"):
+            a_tag = item.find("a", class_="result__url")
+            snippet_tag = item.find("a", class_="result__snippet")
+            
+            title = a_tag.get_text(" ", strip=True) if a_tag else ""
+            href = a_tag.get("href", "").strip() if a_tag else ""
+            snippet = snippet_tag.get_text(" ", strip=True) if snippet_tag else ""
+            
             if title or snippet:
                 results.append(f"{title}\n{snippet}\nNguon: {href}")
+                if len(results) >= 5:  # Lấy tối đa 5 kết quả tốt nhất
+                    break
 
-        if results:
-            return "\n\n".join(results)
-
-        fallback_snippets = [
-            item.get_text(" ", strip=True)
-            for item in soup.find_all("td", class_="result-snippet")[:8]
-        ]
-        return "\n\n".join(fallback_snippets)
+        return "\n\n".join(results)
     except Exception:
         return ""
 
