@@ -23,8 +23,8 @@
     button.warning:hover { background: #a84300; }
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;}
     pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 14px; border-radius: 6px; background: #101820; color: #e8f0f2; line-height: 1.5; }
-    .media-box { margin-top: 15px; text-align: center; }
-    .media-box img { max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #ccc; display: none; margin: 0 auto; }
+    
+    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-family: inherit; font-size: 15px; line-height: 1.6; background: #1a1a2e; color: #e0e0e0; border-left: 4px solid #c0392b; padding: 16px; border-radius: 4px;}
     
     .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
     
@@ -41,7 +41,7 @@
   <main>
     <section class="panel">
       <h1>Trợ lý Web AI</h1>
-      <p style="color: #5b6875; margin: 0;">Chat AI, tạo Sticker Zalo và Tổ hợp Minigame giải trí.</p>
+      <p style="color: #5b6875; margin: 0;">Chat AI, Truyện ma đêm khuya và Tổ hợp Minigame giải trí.</p>
     </section>
 
     <section class="grid">
@@ -56,15 +56,13 @@
       </div>
 
       <div class="panel">
-        <h2>🎨 Tạo Sticker</h2>
-        <input id="sticker-prompt" placeholder="VD: một chú chó mặt xệ đang uống trà sữa">
+        <h2>👻 Kể Truyện Ma</h2>
+        <input id="story-topic" placeholder="VD: Up ROM giữa đêm, mua điện thoại cũ, làm ca đêm...">
         <div class="row">
-          <button id="create-sticker">Tạo Sticker</button>
+          <button id="create-story">Bắt đầu kể</button>
         </div>
-        <div class="media-box" id="sticker-status" style="font-size: 14px; color: #d35400; font-weight: bold;"></div>
-        <div class="media-box">
-          <img id="sticker-img" src="" alt="Sticker Output">
-        </div>
+        <div id="story-status" style="font-size: 14px; color: #d35400; font-weight: bold; margin-top: 10px;"></div>
+        <div class="story-output" id="story-output"></div>
       </div>
     </section>
 
@@ -102,8 +100,6 @@
   </main>
 
   <script>
-    // Nhận key từ Python ném xuống
-    const HF_TOKEN = "{{ hf_token }}";
     const resultBox = document.querySelector("#result");
 
     async function postJson(url, data) {
@@ -130,39 +126,22 @@
       resultBox.textContent = "Đã xóa trí nhớ tạm.";
     });
 
-    // ================= TẠO STICKER: CHẠY TRỰC TIẾP Ở TRÌNH DUYỆT (BỎ QUA RENDER) =================
-    document.querySelector("#create-sticker").addEventListener("click", async () => {
-      const prompt = document.querySelector("#sticker-prompt").value.trim();
-      const status = document.querySelector("#sticker-status");
-      const img = document.querySelector("#sticker-img");
+    // ================= GỌI API KỂ TRUYỆN MA =================
+    document.querySelector("#create-story").addEventListener("click", async () => {
+      const topic = document.querySelector("#story-topic").value.trim();
+      const status = document.querySelector("#story-status");
+      const output = document.querySelector("#story-output");
       
-      if (!prompt) { status.textContent = "Nhập mô tả đi bạn ơi!"; return; }
-      if (!HF_TOKEN) { status.textContent = "Lỗi: Chưa cấu hình HF_TOKEN (Hugging Face) trên Render!"; return; }
+      if (!topic) { status.textContent = "Nhập chủ đề vào để gợi ý cho AI đã!"; return; }
       
-      status.textContent = "Đang vẽ ảnh trực tiếp từ trình duyệt (Không lo server rớt mạng)... Đợi 10-20s.";
-      img.style.display = "none";
+      status.textContent = "Đang rặn chữ... Đợi tí, AI đang lên kịch bản.";
+      output.style.display = "none";
 
       try {
-        const stickerPrompt = `Cute 2D vector sticker, clean white die-cut border, flat design, isolated on white background, ${prompt}`;
-        
-        const res = await fetch("https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${HF_TOKEN}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ inputs: stickerPrompt })
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Lỗi HuggingFace (${res.status}): API đang quá tải hoặc Token hết hạn.`);
-        }
-
-        const blob = await res.blob();
-        img.src = URL.createObjectURL(blob);
-        img.style.display = "block";
-        status.textContent = "Tạo thành công! (Chuột phải hoặc đè tay vào ảnh để Copy/Lưu)";
+        const data = await postJson("/api/ghost_story", { topic });
+        output.textContent = data.story;
+        output.style.display = "block";
+        status.textContent = "Kéo xuống mà đọc, coi chừng đằng sau lưng...";
       } catch (err) { 
         status.textContent = err.message; 
       }
@@ -248,6 +227,7 @@
         for (let [dr, dc] of dirs) {
             let count = 1;
             let winCells = [[r, c]];
+            
             let nr = r + dr, nc = c + dc;
             while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) {
                 count++; winCells.push([nr, nc]); nr += dr; nc += dc;
@@ -267,9 +247,11 @@
         for (let [dr, dc] of dirs) {
             let count = 1;
             let openEnds = 0;
+            
             let nr = r + dr, nc = c + dc;
             while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr += dr; nc += dc; }
             if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === '') openEnds++;
+            
             nr = r - dr; nc = c - dc;
             while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr -= dr; nc -= dc; }
             if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === '') openEnds++;
@@ -305,10 +287,17 @@
                 for (let c = 0; c < BOARD_SIZE; c++) {
                     if (caroState[r][c] === '') {
                         if (!hasNeighbor(r, c)) continue; 
+
                         let attackScore = evaluateScore(r, c, 'O');
                         let defenseScore = evaluateScore(r, c, 'X');
-                        let totalScore = attackScore + (defenseScore * 1.5) + Math.random();
-                        if (totalScore > bestScore) { bestScore = totalScore; bestMove = { r, c }; }
+                        let totalScore = attackScore + (defenseScore * 1.5);
+
+                        totalScore += Math.random();
+
+                        if (totalScore > bestScore) {
+                            bestScore = totalScore;
+                            bestMove = { r, c };
+                        }
                     }
                 }
             }
