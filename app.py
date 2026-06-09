@@ -46,7 +46,8 @@ def now_str() -> str:
 
 def system_prompt_vi() -> str:
     return (
-        "Bạn là trợ lý tiếng Việt. Trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
+        "Bạn là trợ lý tiếng Việt thông minh. Trả lời đầy đủ, chi tiết, có cấu trúc rõ ràng. "
+        "Giải thích kỹ, dùng ví dụ cụ thể khi cần, không bỏ sót thông tin quan trọng. "
         f"Thời gian hiện tại: {now_str()}. "
         "Khi cần tin tức / dữ liệu mới hãy gọi tool tavily_search. "
         "Câu hỏi kiến thức chung thì tự trả lời, không cần gọi tool."
@@ -124,7 +125,7 @@ def ask_openrouter(message: str) -> tuple[str, str]:
                     {"role": "system", "content": system_prompt_vi()},
                     {"role": "user", "content": message},
                 ],
-                "max_tokens": 1024,
+                "max_tokens": 2048,
             },
             timeout=30,
         )
@@ -154,7 +155,7 @@ def ask_github_models(message: str) -> tuple[str, str]:
                     {"role": "system", "content": system_prompt_vi()},
                     {"role": "user", "content": message},
                 ],
-                "max_tokens": 1024,
+                "max_tokens": 2048,
             },
             timeout=30,
         )
@@ -169,7 +170,11 @@ def ask_github_models(message: str) -> tuple[str, str]:
 
 # ── Fallback chain khi Gemini lỗi ────────────────────────────────────────────
 def ai_fallback(message: str, gemini_err: str) -> tuple[str, str]:
-    """Thử lần lượt: OpenRouter → Tavily → GitHub Models."""
+    """Thử lần lượt: GitHub Models → OpenRouter → Tavily."""
+    reply, status = ask_github_models(message)
+    if status != "skip":
+        return reply, status
+
     reply, status = ask_openrouter(message)
     if status != "skip":
         return reply, status
@@ -177,10 +182,6 @@ def ai_fallback(message: str, gemini_err: str) -> tuple[str, str]:
     reply, status = tavily_answer(message)
     if "Lỗi" not in status:
         return reply, "Tavily Search (Gemini quá tải)"
-
-    reply, status = ask_github_models(message)
-    if status != "skip":
-        return reply, status
 
     return gemini_err, "Lỗi – Tất cả dịch vụ không khả dụng"
 
