@@ -3,338 +3,341 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Workspace Workspace</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>AI Workspace</title>
   <style>
     :root {
-      --bg-body: #f3f4f6;
-      --bg-card: #ffffff;
-      --text-main: #111827;
-      --text-muted: #6b7280;
-      --border-color: #e5e7eb;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --purple: #8b5cf6;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; --text-muted: #64748b;
+      --border: #e2e8f0; --primary: #3b82f6; --primary-hover: #2563eb;
+      --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 20px; }
+    .header { text-align: center; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .header h1 { margin: 0 0 5px 0; color: var(--primary); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { margin: 0 0 15px 0; font-size: 18px; border-left: 4px solid var(--primary); padding-left: 10px; }
     
-    body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; padding: 32px 16px; display: flex; justify-content: center; }
+    input[type="text"], textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; margin-bottom: 10px; outline: none; }
+    input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    textarea { resize: vertical; min-height: 80px; }
     
-    main { width: 100%; max-width: 1024px; display: flex; flex-direction: column; gap: 24px; }
-
-    .header-title { text-align: center; margin-bottom: 8px; }
-    .header-title h1 { font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.025em; }
-    .header-title p { color: var(--text-muted); font-size: 15px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
-
-    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; }
-    .card:hover { box-shadow: var(--shadow-md); }
+    .row { display: flex; gap: 10px; align-items: center; }
+    button { padding: 10px 16px; border: none; border-radius: 6px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    button:hover { background: var(--primary-hover); }
+    button.btn-gray { background: #64748b; } button.btn-gray:hover { background: #475569; }
+    button.btn-red { background: var(--danger); } button.btn-red:hover { background: #dc2626; }
     
-    .card-header { display: flex; align-items: center; margin-bottom: 16px; gap: 8px; }
-    .card-header h2 { font-size: 18px; font-weight: 600; color: var(--text-main); }
+    .status-text { font-size: 13px; font-weight: bold; margin-top: 5px; color: var(--warning); display: block; min-height: 18px; }
     
-    .form-group { margin-bottom: 16px; }
-    textarea, input[type="text"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; background: #f9fafb; color: var(--text-main); transition: all 0.2s; outline: none; }
-    textarea:focus, input[type="text"]:focus { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-    textarea { min-height: 100px; resize: vertical; }
-
-    .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
-    button:active { transform: scale(0.98); }
+    .output-box { display: none; margin-top: 15px; padding: 15px; background: #f1f5f9; border-radius: 6px; font-size: 15px; line-height: 1.6; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border: 1px solid var(--border); }
+    pre.chat-result { background: #0f172a; color: #f8fafc; padding: 15px; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; font-family: monospace; font-size: 14px;}
     
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid var(--border-color); }
-    .btn-secondary:hover { background: #e5e7eb; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-success:hover { background: #059669; }
-    .btn-purple { background: var(--purple); color: white; }
-    .btn-purple:hover { background: #7c3aed; }
-
-    label.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
-    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
-
-    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; margin-bottom: 12px; display: none; }
-    .badge.success { background: #d1fae5; color: #065f46; display: inline-flex; }
-    .badge.error { background: #fee2e2; color: #991b1b; display: inline-flex; }
-    .badge.warning { background: #fef3c7; color: #92400e; display: inline-flex; }
-
-    pre.result-box { background: #1f2937; color: #f9fafb; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 120px; }
+    .game-emoji { font-size: 45px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; letter-spacing: 5px; border: 1px dashed var(--border); }
     
-    .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: #f8fafc; border-left: 4px solid var(--primary); font-size: 15px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+    /* Cờ Caro CSS cực kì an toàn */
+    .caro-wrapper { width: 100%; max-height: 400px; overflow: auto; border: 2px solid var(--border); border-radius: 6px; background: #e2e8f0; margin-top: 15px; }
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); grid-template-rows: repeat(25, 36px); gap: 1px; background: #cbd5e1; width: max-content; padding: 1px; margin: 0 auto; }
+    .caro-cell { width: 36px; height: 36px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; }
+    .caro-cell:hover { background: #f8fafc; }
+    .win-cell { background: #fef08a !important; color: #b45309 !important; }
 
-    /* Game Styling */
-    .riddle-display { font-size: 48px; text-align: center; padding: 32px 20px; margin-bottom: 16px; background: #f3f4f6; border-radius: 12px; letter-spacing: 8px; border: 1px dashed var(--border-color); }
-    
-    .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); gap: 1px; background: #d1d5db; width: max-content; padding: 1px; margin: 0 auto; }
-    .caro-cell { width: 36px; height: 36px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; cursor: pointer; user-select: none; transition: background 0.1s; }
-    .caro-cell:hover { background: #f3f4f6; }
-    .caro-cell.win-cell { background: #fef08a !important; color: #92400e !important; }
-
-    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <main>
-    <div class="header-title">
+  <div class="container">
+    <div class="header">
       <h1>AI Workspace</h1>
-      <p>Công cụ Tích hợp Thông minh & Tiện ích Mở rộng</p>
+      <p style="margin:0; color: var(--text-muted);">ChatBot chống sập - Tìm Lyric - Giải trí Local</p>
     </div>
 
     <div class="grid">
       <div class="card">
-        <div class="card-header">
-          <span>💬</span><h2>Trợ lý Trí tuệ Nhân tạo</h2>
+        <h2>Chat AI (Gemini + Groq)</h2>
+        <textarea id="chat-input" placeholder="Nhập câu hỏi tại đây..."></textarea>
+        <div class="row">
+          <button id="btn-chat-send">Gửi</button>
+          <button id="btn-chat-clear" class="btn-gray">Xóa nhớ</button>
+          <label style="font-size: 14px; cursor: pointer;"><input type="checkbox" id="chat-search" checked> Nối mạng web</label>
         </div>
-        <div class="form-group">
-          <textarea id="message" placeholder="Bạn cần hỗ trợ điều gì hôm nay?"></textarea>
-        </div>
-        <div class="button-group">
-          <button id="send" class="btn-primary">Gửi yêu cầu</button>
-          <button id="clear" class="btn-secondary">Làm mới</button>
-          <label class="checkbox-label"><input id="search" type="checkbox" checked> Chế độ Online</label>
-        </div>
+        <span id="chat-status" class="status-text" style="color: var(--success);"></span>
       </div>
 
       <div class="card">
-        <div class="card-header">
-          <span>🎵</span><h2>Tra cứu Lời Bài Hát</h2>
-        </div>
-        <div class="form-group">
-          <input type="text" id="song-query" placeholder="Nhập tên bài hoặc trích đoạn lời bài hát...">
-        </div>
-        <div class="button-group">
-          <button id="btn-lyric" class="btn-primary" style="background: var(--purple);">Tìm kiếm</button>
-        </div>
-        <div id="lyric-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
-        <div id="lyric-output" class="output-box" style="border-left-color: var(--purple);"></div>
+        <h2>Tìm Lời Bài Hát</h2>
+        <input type="text" id="lyric-input" placeholder="Nhập tên bài hát hoặc câu hát...">
+        <button id="btn-lyric-search">Tìm kiếm</button>
+        <span id="lyric-status" class="status-text"></span>
+        <div id="lyric-output" class="output-box"></div>
       </div>
     </div>
 
-    <div class="card" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-md);">
-      <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-size: 16px; margin: 0;">Kết quả truy vấn</h2>
-        <div id="chat-status" class="badge"></div>
-      </div>
-      <pre id="result" class="result-box">Hệ thống sẵn sàng tiếp nhận lệnh.</pre>
+    <div class="card" style="padding: 0; overflow: hidden; border: none;">
+      <div style="background: #e2e8f0; padding: 10px 15px; font-weight: bold; font-size: 14px; border-bottom: 1px solid var(--border);">Kết quả Chat</div>
+      <pre id="chat-output" class="chat-result">Sẵn sàng nhận lệnh.</pre>
     </div>
 
     <div class="grid">
       <div class="card">
-        <div class="card-header">
-          <span>📖</span><h2>Sáng tác Truyện Ma</h2>
-        </div>
-        <div class="form-group">
-          <input type="text" id="story-topic" placeholder="Chủ đề (VD: Bệnh viện bỏ hoang, chuyến xe đêm...)">
-        </div>
-        <div class="button-group">
-          <button id="create-story" class="btn-primary" style="background: var(--success);">Bắt đầu sáng tác</button>
-        </div>
-        <div id="story-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
-        <div id="story-output" class="output-box" style="border-left-color: var(--success);"></div>
+        <h2>Sáng tác Truyện Ma</h2>
+        <input type="text" id="ghost-input" placeholder="Nhập chủ đề (VD: Bệnh viện, Ở trọ...)">
+        <button id="btn-ghost-create">Viết truyện</button>
+        <span id="ghost-status" class="status-text"></span>
+        <div id="ghost-output" class="output-box"></div>
       </div>
 
       <div class="card">
-        <div class="card-header">
-          <span>🧩</span><h2>Minigame: Đuổi Hình Bắt Chữ</h2>
+        <h2>Đuổi Hình Bắt Chữ</h2>
+        <div id="riddle-display" class="game-emoji">❓❔❓</div>
+        <div class="row">
+          <input type="text" id="riddle-input" placeholder="Gõ đáp án..." style="margin-bottom:0; flex:1;">
+          <button id="btn-riddle-guess">Đoán</button>
         </div>
-        <div id="game-display" class="riddle-display">❓❔❓</div>
-        <div class="form-group" style="display: flex; gap: 8px;">
-          <input type="text" id="game-guess" placeholder="Nhập đáp án..." style="margin-bottom: 0;">
-          <button id="btn-guess" class="btn-primary">Đoán</button>
+        <div class="row" style="margin-top: 10px;">
+          <button id="btn-riddle-new" class="btn-gray" style="flex:1;">Lấy câu đố</button>
+          <button id="btn-riddle-ans" class="btn-red" style="flex:1;">Xem đáp án</button>
         </div>
-        <div class="button-group" style="margin-top: 12px;">
-          <button id="btn-new-riddle" class="btn-secondary" style="flex: 1;">Câu hỏi mới</button>
-          <button id="btn-show-answer" class="btn-secondary" style="flex: 1; color: var(--danger);">Xem đáp án</button>
-        </div>
-        <div style="text-align: center; margin-top: 16px;">
-            <div id="game-status" class="badge">Sẵn sàng!</div>
-        </div>
+        <span id="riddle-status" class="status-text" style="text-align:center; color: var(--primary);">Sẵn sàng! Bấm Lấy câu đố.</span>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header" style="justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span>⭕</span><h2>Cờ Caro (Luật 5 nước)</h2>
-        </div>
-        <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px;">Bạn đi trước (X)</div>
+      <div class="row" style="justify-content: space-between;">
+        <h2>Cờ Caro (Đấu AI Local)</h2>
+        <button id="btn-caro-reset" class="btn-gray">Đầu hàng / Ván mới</button>
       </div>
-      <div class="button-group" style="justify-content: center;">
-        <button id="btn-caro-reset" class="btn-secondary">Khởi tạo ván mới</button>
-      </div>
-      <div class="caro-wrapper">
-          <div class="caro-grid" id="caro-board"></div>
+      <span id="caro-status" class="status-text" style="color: var(--success); font-size: 15px;">Bạn đi trước (Đánh X)</span>
+      <div class="caro-wrapper" id="caro-scroll">
+        <div class="caro-grid" id="caro-board"></div>
       </div>
     </div>
-
-  </main>
+  </div>
 
   <script>
-    const getEl = (id) => document.querySelector(id);
-    const addClick = (id, handler) => { 
-        const el = getEl(id); 
-        if (el) el.addEventListener("click", handler); 
+    // Hàm gọi API dùng chung
+    async function apiCall(endpoint, payload) {
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lỗi máy chủ.");
+      return data;
+    }
+
+    // --- MODULE CHAT ---
+    document.getElementById("btn-chat-send").onclick = async () => {
+      const msg = document.getElementById("chat-input").value.trim();
+      if (!msg) return;
+      document.getElementById("chat-status").textContent = "⏳ Đang gọi AI...";
+      document.getElementById("chat-status").style.color = "var(--warning)";
+      document.getElementById("chat-output").textContent = "Vui lòng chờ...";
+      try {
+        const res = await apiCall("/api/chat", { message: msg, search: document.getElementById("chat-search").checked });
+        document.getElementById("chat-status").textContent = res.search_status;
+        document.getElementById("chat-status").style.color = "var(--success)";
+        document.getElementById("chat-output").textContent = res.reply;
+      } catch (err) {
+        document.getElementById("chat-status").textContent = "Lỗi kết nối";
+        document.getElementById("chat-status").style.color = "var(--danger)";
+        document.getElementById("chat-output").textContent = err.message;
+      }
     };
     
-    function updateBadge(id, text, type) {
-        const badge = getEl(id);
-        if(!badge) return;
-        badge.textContent = text;
-        badge.className = `badge ${type}`;
-        badge.style.display = 'inline-flex';
-    }
+    document.getElementById("btn-chat-clear").onclick = async () => {
+      await apiCall("/api/clear", {});
+      document.getElementById("chat-input").value = "";
+      document.getElementById("chat-status").textContent = "Đã xóa trí nhớ";
+      document.getElementById("chat-output").textContent = "Phiên làm việc mới.";
+    };
 
-    async function postJson(url, data) {
-      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ nội bộ.");
-      return json;
-    }
-
-    // --- CHAT AI ---
-    addClick("#send", async () => {
-      const message = getEl("#message")?.value.trim();
-      const search = getEl("#search")?.checked;
-      const resultBox = getEl("#result");
-      
-      if (!message) return;
-      
-      updateBadge("#chat-status", "⏳ Đang xử lý...", "warning");
-      resultBox.textContent = "Hệ thống đang phân tích yêu cầu...";
-      
+    // --- MODULE LYRIC ---
+    document.getElementById("btn-lyric-search").onclick = async () => {
+      const query = document.getElementById("lyric-input").value.trim();
+      if (!query) return;
+      document.getElementById("lyric-output").style.display = "none";
+      document.getElementById("lyric-status").textContent = "⏳ Đang tìm kiếm...";
+      document.getElementById("lyric-status").style.color = "var(--warning)";
       try {
-        const data = await postJson("/api/chat", { message, search });
-        updateBadge("#chat-status", data.search_status, data.search_status.includes("Lỗi") ? "error" : "success");
-        resultBox.textContent = data.reply;
-      } catch (err) { 
-        updateBadge("#chat-status", "Mất kết nối", "error");
-        resultBox.textContent = err.message; 
+        const res = await apiCall("/api/get_lyrics", { query });
+        document.getElementById("lyric-output").textContent = res.lyrics;
+        document.getElementById("lyric-output").style.display = "block";
+        document.getElementById("lyric-status").textContent = "✅ Đã tìm thấy!";
+        document.getElementById("lyric-status").style.color = "var(--success)";
+      } catch (err) {
+        document.getElementById("lyric-status").textContent = "❌ " + err.message;
+        document.getElementById("lyric-status").style.color = "var(--danger)";
       }
-    });
+    };
 
-    addClick("#clear", async () => {
-      await postJson("/api/clear", {});
-      if(getEl("#message")) getEl("#message").value = "";
-      if(getEl("#chat-status")) getEl("#chat-status").style.display = "none";
-      if(getEl("#result")) getEl("#result").textContent = "Phiên làm việc đã được làm mới.";
-    });
-
-    // --- TÌM LỜI BÀI HÁT ---
-    addClick("#btn-lyric", async () => {
-      const query = getEl("#song-query")?.value.trim();
-      const output = getEl("#lyric-output");
-      if (!query) { updateBadge("#lyric-status", "Vui lòng nhập từ khóa.", "error"); return; }
-      
-      updateBadge("#lyric-status", "Đang truy xuất dữ liệu...", "warning");
-      output.style.display = "none";
-      
+    // --- MODULE TRUYỆN MA ---
+    document.getElementById("btn-ghost-create").onclick = async () => {
+      const topic = document.getElementById("ghost-input").value.trim();
+      document.getElementById("ghost-output").style.display = "none";
+      document.getElementById("ghost-status").textContent = "⏳ Đang sáng tác...";
+      document.getElementById("ghost-status").style.color = "var(--warning)";
       try {
-        const data = await postJson("/api/get_lyrics", { query });
-        output.textContent = data.lyrics; 
-        output.style.display = "block";
-        updateBadge("#lyric-status", "Truy xuất thành công", "success");
-      } catch (err) { 
-        updateBadge("#lyric-status", "Lỗi: " + err.message, "error");
+        const res = await apiCall("/api/ghost_story", { topic });
+        document.getElementById("ghost-output").textContent = res.story;
+        document.getElementById("ghost-output").style.display = "block";
+        document.getElementById("ghost-status").textContent = "✅ Hoàn tất";
+        document.getElementById("ghost-status").style.color = "var(--success)";
+      } catch (err) {
+        document.getElementById("ghost-status").textContent = "❌ " + err.message;
+        document.getElementById("ghost-status").style.color = "var(--danger)";
       }
-    });
+    };
 
-    // --- TRUYỆN MA ---
-    addClick("#create-story", async () => {
-      const topic = getEl("#story-topic")?.value.trim() || "ngẫu nhiên";
-      const output = getEl("#story-output");
-      output.style.display = "block";
-      output.textContent = "Hệ thống đang khởi tạo nội dung...";
-      updateBadge("#story-status", "Đang xử lý...", "warning");
-      
+    // --- MODULE ĐUỔI HÌNH BẮT CHỮ ---
+    document.getElementById("btn-riddle-new").onclick = async () => {
+      document.getElementById("riddle-input").value = "";
+      document.getElementById("riddle-display").textContent = "⏳";
       try {
-        const data = await postJson("/api/ghost_story", { topic });
-        output.textContent = data.story || data.error;
-        updateBadge("#story-status", "Hoàn tất", "success");
-      } catch (err) { 
-        output.textContent = "Lỗi xử lý: " + err.message; 
-        updateBadge("#story-status", "Thất bại", "error");
-      }
-    });
+        const res = await apiCall("/api/game/riddle", {});
+        document.getElementById("riddle-display").textContent = res.emoji;
+        document.getElementById("riddle-status").textContent = "Đã có câu hỏi!";
+        document.getElementById("riddle-status").style.color = "var(--primary)";
+      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
+    };
 
-    // --- ĐUỔI HÌNH BẮT CHỮ ---
-    const gameDisplay = getEl("#game-display");
-    const gameGuess = getEl("#game-guess");
-
-    addClick("#btn-new-riddle", async () => {
-      if(gameDisplay) gameDisplay.textContent = "⏳";
-      if(gameGuess) gameGuess.value = "";
-      try {
-        const data = await postJson("/api/game/riddle", {});
-        if(gameDisplay) gameDisplay.textContent = data.emoji;
-        updateBadge("#game-status", "Câu hỏi đã sẵn sàng", "warning");
-      } catch (err) { 
-        updateBadge("#game-status", err.message, "error");
-      }
-    });
-
-    addClick("#btn-guess", async () => {
-      const guess = gameGuess?.value.trim();
+    document.getElementById("btn-riddle-guess").onclick = async () => {
+      const guess = document.getElementById("riddle-input").value.trim();
       if (!guess) return;
       try {
-        const data = await postJson("/api/game/guess", { guess });
-        updateBadge("#game-status", data.message, data.correct ? "success" : "error");
-      } catch (err) { 
-        updateBadge("#game-status", err.message, "error");
-      }
-    });
+        const res = await apiCall("/api/game/guess", { guess });
+        document.getElementById("riddle-status").textContent = res.message;
+        document.getElementById("riddle-status").style.color = res.correct ? "var(--success)" : "var(--danger)";
+      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
+    };
 
-    addClick("#btn-show-answer", async () => {
+    document.getElementById("btn-riddle-ans").onclick = async () => {
       try {
-        const data = await postJson("/api/game/answer", {});
-        updateBadge("#game-status", data.message, "error");
-        if(gameDisplay) gameDisplay.textContent = "🙈"; 
-      } catch (err) { 
-        updateBadge("#game-status", err.message, "error");
-      }
-    });
+        const res = await apiCall("/api/game/answer", {});
+        document.getElementById("riddle-status").textContent = res.message;
+        document.getElementById("riddle-status").style.color = "var(--danger)";
+        document.getElementById("riddle-display").textContent = "🙈";
+      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
+    };
+    
+    document.getElementById("riddle-input").addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById("btn-riddle-guess").click(); });
 
-    if(gameGuess) {
-      gameGuess.addEventListener("keypress", (e) => { 
-        if (e.key === "Enter") getEl("#btn-guess")?.click(); 
-      });
-    }
-
-    // --- CỜ CARO ---
-    const BOARD_SIZE = 25;
-    const caroBoard = getEl('#caro-board');
+    // --- MODULE CỜ CARO 25x25 ---
+    const SIZE = 25;
     let caroState = [];
     let caroActive = true;
-
-    function initCaroState() { caroState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill('')); }
+    const boardEl = document.getElementById("caro-board");
+    const statusEl = document.getElementById("caro-status");
 
     function renderCaro() {
-      if(!caroBoard) return;
-      caroBoard.innerHTML = '';
-      for (let r = 0; r < BOARD_SIZE; r++) {
-          for (let c = 0; c < BOARD_SIZE; c++) {
-              const div = document.createElement('div');
-              div.className = 'caro-cell';
-              div.id = `cell-${r}-${c}`;
-              if (caroState[r][c] !== '') {
-                  div.style.color = caroState[r][c] === 'X' ? 'var(--primary)' : 'var(--danger)';
-                  div.textContent = caroState[r][c];
-              }
-              div.addEventListener('click', () => handleCaroClick(r, c));
-              caroBoard.appendChild(div);
+      boardEl.innerHTML = "";
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const div = document.createElement("div");
+          div.className = "caro-cell";
+          div.id = `c-${r}-${c}`;
+          if (caroState[r][c] !== "") {
+            div.textContent = caroState[r][c];
+            div.style.color = caroState[r][c] === 'X' ? "var(--primary)" : "var(--danger)";
           }
+          div.onclick = () => handleCaroClick(r, c);
+          boardEl.appendChild(div);
+        }
       }
     }
 
-    function updateSingleCell(r, c) {
-        const cell = getEl(`#cell-${r}-${c}`);
-        if(cell) {
-            cell.style.
+    function checkWin(r, c, p) {
+      const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+      for (let [dr, dc] of dirs) {
+        let count = 1; let cells = [[r,c]];
+        let nr = r + dr, nc = c + dc;
+        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p) { count++; cells.push([nr,nc]); nr+=dr; nc+=dc; }
+        nr = r - dr; nc = c - dc;
+        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p) { count++; cells.push([nr,nc]); nr-=dr; nc-=dc; }
+        if(count >= 5) return cells;
+      }
+      return null;
+    }
+
+    function evalScore(r, c, p) {
+      let score = 0; const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+      for (let [dr, dc] of dirs) {
+        let count = 1, open = 0;
+        let nr = r+dr, nc = c+dc;
+        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; nr+=dr; nc+=dc; }
+        if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]==='') open++;
+        nr = r-dr; nc = c-dc;
+        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; nr-=dr; nc-=dc; }
+        if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]==='') open++;
+        
+        if(count >= 5) score += 100000;
+        else if(count === 4 && open > 0) score += 10000;
+        else if(count === 3 && open === 2) score += 5000;
+        else if(count === 3 && open === 1) score += 500;
+        else if(count === 2 && open === 2) score += 300;
+      }
+      return score;
+    }
+
+    function botMove() {
+      if(!caroActive) return;
+      let best = -1, move = null;
+      if(caroState[12][12]==='') move = {r:12, c:12};
+      else {
+        for(let r=0; r<SIZE; r++) {
+          for(let c=0; c<SIZE; c++) {
+            if(caroState[r][c]==='') {
+              let hasN=false;
+              for(let i=-2; i<=2; i++) for(let j=-2; j<=2; j++) {
+                if(r+i>=0 && r+i<SIZE && c+j>=0 && c+j<SIZE && caroState[r+i][c+j]!=='') hasN=true;
+              }
+              if(!hasN) continue;
+              let att = evalScore(r,c,'O'), def = evalScore(r,c,'X');
+              let tot = att + (def*1.5) + Math.random();
+              if(tot > best) { best = tot; move = {r, c}; }
+            }
+          }
+        }
+      }
+      if(move) {
+        caroState[move.r][move.c] = 'O';
+        let cell = document.getElementById(`c-${move.r}-${move.c}`);
+        cell.textContent = 'O'; cell.style.color = "var(--danger)";
+        let win = checkWin(move.r, move.c, 'O');
+        if(win) {
+          win.forEach(([wr,wc]) => document.getElementById(`c-${wr}-${wc}`).classList.add("win-cell"));
+          statusEl.textContent = "Máy thắng! Bạn gà quá 😆"; statusEl.style.color = "var(--danger)"; caroActive = false;
+        } else {
+          statusEl.textContent = "Bạn đi trước (Đánh X)"; statusEl.style.color = "var(--success)";
+        }
+      }
+    }
+
+    function handleCaroClick(r, c) {
+      if(caroState[r][c] !== '' || !caroActive) return;
+      caroState[r][c] = 'X';
+      let cell = document.getElementById(`c-${r}-${c}`);
+      cell.textContent = 'X'; cell.style.color = "var(--primary)";
+      
+      let win = checkWin(r, c, 'X');
+      if(win) {
+        win.forEach(([wr,wc]) => document.getElementById(`c-${wr}-${wc}`).classList.add("win-cell"));
+        statusEl.textContent = "Bạn thắng rồi! Quá tuyệt 🎉"; statusEl.style.color = "var(--success)"; caroActive = false;
+      } else {
+        statusEl.textContent = "Máy đang nghĩ..."; statusEl.style.color = "var(--warning)";
+        setTimeout(botMove, 50);
+      }
+    }
+
+    document.getElementById("btn-caro-reset").onclick = () => {
+      caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill(''));
+      caroActive = true;
+      statusEl.textContent = "Bạn đi trước (Đánh X)"; statusEl.style.color = "var(--success)";
+      renderCaro();
+      const scroll = document.getElementById("caro-scroll");
+      if(scroll) { scroll.scrollLeft = scroll.scrollWidth/2 - scroll.clientWidth/2; scroll.scrollTop = scroll.scrollHeight/2 - scroll.clientHeight/2; }
+    };
+
+    // Khởi tạo bàn cờ lần đầu
+    document.getElementById("btn-caro-reset").click();
+  </script>
+</body>
+</html>
