@@ -76,3 +76,96 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
         if use_search: payload["tools"] = [{"googleSearch": {}}] 
 
         res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+
+        # NẾU GEMINI BẬN THÌ ĐÁ SANG GROQ
+        if res.status_code != 200:
+            return ask_groq_fallback(user_message, use_search, chat_history)
+
+        data = res.json()
+        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        
+        grounding_meta = data["candidates"][0].get("groundingMetadata", {})
+        used_google = bool(grounding_meta.get("searchEntryPoint") or grounding_meta.get("groundingChunks"))
+        status = "Nối mạng Google (Gemini)" if used_google else "Dùng não (Gemini)"
+
+        chat_history.append({"role": "user", "content": user_message})
+        chat_history.append({"role": "model", "content": reply})
+        return reply, status, chat_history
+    except Exception:
+        return ask_groq_fallback(user_message, use_search, chat_history)
+
+@app.get("/")
+def index(): 
+    return render_template("index.html")
+
+@app.post("/api/chat")
+def chat():
+    payload = request.get_json(force=True)
+    message = (payload.get("message") or "").strip()
+    use_search = payload.get("search", True) is not False
+    history = payload.get("history", [])
+
+    if not message: return jsonify({"error": "Nhập nội dung"}), 400
+    reply, search_status, new_history = ask_ai(message, use_search, history)
+    return jsonify({"reply": reply, "search_status": search_status, "history": new_history})
+
+@app.post("/api/ghost_story")
+def ghost_story():
+    topic = request.get_json(force=True).get("topic", "đêm khuya").strip()
+    prompt = f"Sáng tác truyện ma ngắn rùng rợn về: {topic}."
+    
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        res = requests.post(url, json={"contents": [{"role": "user", "parts": [{"text": prompt}]}]}, timeout=30)
+        
+        if res.status_code == 200:
+            return jsonify({"story": res.json()["candidates"][0]["content"]["parts"][0]["text"]})
+        
+        # Groq Fallback cho truyện ma
+        if GROQ_API_KEY:
+            g_res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}]},
+                timeout=30
+            )
+            if g_res.status_code == 200:
+                story_text = g_res.json()["choices"][0]["message"]["content"]
+                return jsonify({"story": story_text + "\n\n*(Ghi chú: Truyện này do AI dự phòng kể do máy chủ chính tắc đường)*"})
+        
+        return jsonify({"error": "Máy chủ đang tắc đường, đéo ai rảnh kể truyện. Vui lòng thử lại sau 1 phút!"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
+
+@app.post("/api/read_url")
+def read_url():
+    payload = request.get_json(force=True)
+    url = payload.get("url", "").strip()
+    if not url: return jsonify({"error": "Chưa nhập link truyện."}), 400
+    
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        res = requests.get(url, headers=headers, timeout=15)
+        res.raise_for_status()
+        
+        soup = BeautifulSoup(res.text, "html.parser")
+        title = soup.title.string if soup.title else "Không rõ tiêu đề"
+        
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'button']):
+            tag.decompose()
+        
+        paragraphs = soup.find_all('p')
+        if paragraphs:
+            content = "\n\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 25])
+        else:
+            content = soup.get_text(separator='\n', strip=True)
+        
+        if len(content) < 100:
+            return jsonify({"error": "Không bóc được chữ từ web này (có thể nó có lớp bảo vệ chống copy)."}), 400
+            
+        return jsonify({"title": title, "content": content})
+    except Exception as e:
+        return jsonify({"error": f"Lỗi cào web: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
