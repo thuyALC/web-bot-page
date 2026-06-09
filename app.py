@@ -2,6 +2,7 @@ import os
 import requests
 import urllib.parse
 import xml.etree.ElementTree as ET
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
@@ -15,7 +16,6 @@ GEMINI_MODEL = "gemini-2.5-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
 def get_rss_news(query: str) -> str:
-    """Cào Google News làm mắt cho Groq"""
     if len(query) < 2: return ""
     try:
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=vi&gl=VN&ceid=VN:vi"
@@ -26,9 +26,8 @@ def get_rss_news(query: str) -> str:
     except: return ""
 
 def ask_groq_fallback(user_message: str, use_search: bool, chat_history: list):
-    """Lốp dự phòng: Xài Groq + RSS khi Gemini quá tải"""
     if not GROQ_API_KEY:
-        return "Gemini đang nghẽn. Hãy lên Render thêm biến GROQ_API_KEY làm lốp dự phòng để bot không sập nhé.", "Lỗi cạn API", chat_history
+        return "Gemini đang nghẽn. Lên Render thêm biến GROQ_API_KEY làm lốp dự phòng ngay nhé.", "Lỗi cạn API", chat_history
     
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     sys_msg = f"Bạn là trợ lý tiếng Việt. Trả lời ngắn gọn, tự nhiên. Thời gian: {now_str}."
@@ -63,7 +62,6 @@ def ask_groq_fallback(user_message: str, use_search: bool, chat_history: list):
         return f"Lỗi Groq Fallback: {str(e)}", "Toang", chat_history
 
 def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None):
-    """Hàm AI Chính (Ưu tiên Gemini)"""
     if chat_history is None: chat_history = []
     if not GEMINI_API_KEY: return "Chưa cấu hình GEMINI_API_KEY.", "Lỗi", chat_history
 
@@ -77,7 +75,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
 
         res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
 
-        # NẾU GEMINI BẬN THÌ ĐÁ SANG GROQ
         if res.status_code != 200:
             return ask_groq_fallback(user_message, use_search, chat_history)
 
@@ -121,7 +118,6 @@ def ghost_story():
         if res.status_code == 200:
             return jsonify({"story": res.json()["candidates"][0]["content"]["parts"][0]["text"]})
         
-        # Groq Fallback cho truyện ma
         if GROQ_API_KEY:
             g_res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -131,9 +127,9 @@ def ghost_story():
             )
             if g_res.status_code == 200:
                 story_text = g_res.json()["choices"][0]["message"]["content"]
-                return jsonify({"story": story_text + "\n\n*(Ghi chú: Truyện này do AI dự phòng kể do máy chủ chính tắc đường)*"})
+                return jsonify({"story": story_text + "\n\n*(Ghi chú: Máy chủ chính kẹt nên AI dự phòng kể tạm)*"})
         
-        return jsonify({"error": "Máy chủ đang tắc đường, đéo ai rảnh kể truyện. Vui lòng thử lại sau 1 phút!"}), 500
+        return jsonify({"error": "Máy chủ đang tắc đường, đéo ai rảnh kể truyện. Vui lòng thử lại sau!"}), 500
     except Exception as e:
         return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
 
@@ -144,28 +140,34 @@ def read_url():
     if not url: return jsonify({"error": "Chưa nhập link truyện."}), 400
     
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
+        }
         res = requests.get(url, headers=headers, timeout=15)
         res.raise_for_status()
         
         soup = BeautifulSoup(res.text, "html.parser")
         title = soup.title.string if soup.title else "Không rõ tiêu đề"
         
-        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'button']):
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'button', 'form', 'noscript']):
             tag.decompose()
         
-        paragraphs = soup.find_all('p')
-        if paragraphs:
-            content = "\n\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 25])
-        else:
-            content = soup.get_text(separator='\n', strip=True)
+        content = ""
+        target_classes = ['chapter-c', 'chapter-content', 'noidung', 'story-detail-content', 'chuong-c', 'noidungchuong']
+        content_divs = soup.find_all('div', class_=target_classes)
         
-        if len(content) < 100:
-            return jsonify({"error": "Không bóc được chữ từ web này (có thể nó có lớp bảo vệ chống copy)."}), 400
-            
-        return jsonify({"title": title, "content": content})
-    except Exception as e:
-        return jsonify({"error": f"Lỗi cào web: {str(e)}"}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
+        if content_divs:
+            main_div = max(content_divs, key=lambda d: len(d.get_text()))
+            for br in main_div.find_all("br"):
+                br.replace_with("\n")
+            content = main_div.get_text(separator="\n", strip=True)
+        else:
+            for br in soup.find_all("br"):
+                br.replace_with("\n")
+            paragraphs = soup.find_all('p')
+            if paragraphs:
+                content = "\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 20])
+            else:
+                content = soup.get_text(separator='\n', strip
