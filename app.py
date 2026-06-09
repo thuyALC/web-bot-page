@@ -6,36 +6,33 @@ from datetime import datetime
 import requests
 from flask import Flask, jsonify, render_template, request
 
-
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "b4-f3a-k3y-p1s-r3pl4c3-1t")
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
+# ── API Keys ──────────────────────────────────────────────────────────────────
+GEMINI_API_KEY      = os.environ.get("GEMINI_API_KEY", "").strip()
+OPENROUTER_API_KEY  = os.environ.get("OPENROUTER_API_KEY", "").strip()
+GITHUB_TOKEN        = os.environ.get("GITHUB_TOKEN", "").strip()
+TAVILY_API_KEY      = os.environ.get("TAVILY_API_KEY", "").strip()
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL        = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+OPENROUTER_MODEL    = os.environ.get("OPENROUTER_MODEL", "mistralai/mistral-7b-instruct:free")
+GITHUB_MODEL        = os.environ.get("GITHUB_MODEL", "gpt-4o-mini")
 
-HERMES_TOOL_NAME = "hermes_agent_search"
+# ── Gemini Tool định nghĩa ────────────────────────────────────────────────────
+HERMES_TOOL_NAME = "tavily_search"
 HERMES_TOOL = {
     "functionDeclarations": [
         {
             "name": HERMES_TOOL_NAME,
             "description": (
-                "Call Hermes-Agent to fetch and process fresh news or current data. "
-                "Use this when the user asks about news, recent events, prices, "
-                "schedules, results, or anything that needs up-to-date information."
+                "Search for fresh news, current data, prices, schedules, or recent events."
             ),
             "parameters": {
                 "type": "OBJECT",
                 "properties": {
-                    "query": {
-                        "type": "STRING",
-                        "description": "The user's question or search query for Hermes-Agent.",
-                    },
-                    "locale": {
-                        "type": "STRING",
-                        "description": "Preferred locale, for example vi-VN.",
-                    },
+                    "query": {"type": "STRING", "description": "Search query."},
+                    "locale": {"type": "STRING", "description": "Locale, e.g. vi-VN."},
                 },
                 "required": ["query"],
             },
@@ -43,47 +40,36 @@ HERMES_TOOL = {
     ]
 }
 
-FRESH_QUERY_KEYWORDS = (
-    "tin tuc",
-    "tin moi",
-    "moi nhat",
-    "hom nay",
-    "bao moi",
-    "thoi su",
-    "su kien",
-    "gia",
-    "lich",
-    "ket qua",
-    "cap nhat",
-    "news",
-    "latest",
-    "today",
-)
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def now_str() -> str:
+    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
+def system_prompt_vi() -> str:
+    return (
+        "Bạn là trợ lý tiếng Việt. Trả lời ngắn gọn, tự nhiên, đúng trọng tâm. "
+        f"Thời gian hiện tại: {now_str()}. "
+        "Khi cần tin tức / dữ liệu mới hãy gọi tool tavily_search. "
+        "Câu hỏi kiến thức chung thì tự trả lời, không cần gọi tool."
+    )
 
-def normalize_text(value: str) -> str:
-    return (value or "").lower()
-
-
-def looks_like_fresh_query(message: str) -> bool:
-    text = normalize_text(message)
-    return any(keyword in text for keyword in FRESH_QUERY_KEYWORDS)
-
+def extract_text_openai_style(data: dict) -> str:
+    """Parse response dạng OpenAI (OpenRouter / GitHub Models)."""
+    try:
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception:
+        return ""
 
 def extract_text_from_gemini(data: dict) -> str:
     candidates = data.get("candidates") or []
     if not candidates:
         return ""
-
     parts = candidates[0].get("content", {}).get("parts", [])
-    return "".join(part.get("text", "") for part in parts).strip()
+    return "".join(p.get("text", "") for p in parts).strip()
 
-
-def call_hermes_agent(query: str, locale: str = "vi-VN") -> dict:
-    """Gọi Tavily Search API để lấy thông tin mới nhất."""
+# ── Tavily Search ─────────────────────────────────────────────────────────────
+def call_tavily(query: str) -> dict:
     if not TAVILY_API_KEY:
         return {"ok": False, "error": "Chưa cấu hình TAVILY_API_KEY."}
-
     try:
         res = requests.post(
             "https://api.tavily.com/search",
@@ -99,74 +85,120 @@ def call_hermes_agent(query: str, locale: str = "vi-VN") -> dict:
         )
         if res.status_code != 200:
             return {"ok": False, "error": f"Tavily lỗi {res.status_code}."}
-
         data = res.json()
-        # Tavily trả về field "answer" (tóm tắt AI) và "results" (danh sách bài)
         answer = data.get("answer", "")
         results = data.get("results", [])
-
         if not answer and results:
-            # Tự tổng hợp từ top results nếu không có answer
             snippets = [
-                f"- {r.get('title', '')}: {r.get('content', '')[:200]}"
+                f"- {r.get('title','')}: {r.get('content','')[:200]}"
                 for r in results[:3]
             ]
             answer = "\n".join(snippets)
-
         return {"ok": True, "data": {"answer": answer, "sources": results}}
     except Exception as exc:
-        return {"ok": False, "error": f"Lỗi kết nối Tavily: {exc}"}
+        return {"ok": False, "error": f"Lỗi Tavily: {exc}"}
 
+def tavily_answer(query: str) -> tuple[str, str]:
+    r = call_tavily(query)
+    if r.get("ok"):
+        data = r["data"]
+        return data.get("answer") or json.dumps(data, ensure_ascii=False), "Tavily Search"
+    return r.get("error", "Tavily không trả về dữ liệu."), "Lỗi Tavily"
 
-def hermes_direct_answer(query: str, result: dict) -> tuple[str, str]:
-    if not result.get("ok"):
-        return result.get("error", "Hermes-Agent không trả về dữ liệu."), "Lỗi Hermes-Agent"
+# ── OpenRouter fallback ───────────────────────────────────────────────────────
+def ask_openrouter(message: str) -> tuple[str, str]:
+    if not OPENROUTER_API_KEY:
+        return "", "skip"
+    try:
+        res = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://ai-workspace.app",
+                "X-Title": "AI Workspace",
+            },
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt_vi()},
+                    {"role": "user", "content": message},
+                ],
+                "max_tokens": 1024,
+            },
+            timeout=30,
+        )
+        if res.status_code != 200:
+            return "", "skip"
+        reply = extract_text_openai_style(res.json())
+        if reply:
+            return reply, f"OpenRouter ({OPENROUTER_MODEL.split('/')[-1]})"
+        return "", "skip"
+    except Exception:
+        return "", "skip"
 
-    data = result.get("data")
-    if isinstance(data, dict):
-        for key in ("answer", "summary", "content", "text", "result"):
-            if data.get(key):
-                return str(data[key]), "Tavily Search"
-        return json.dumps(data, ensure_ascii=False, indent=2), "Tavily Search"
+# ── GitHub Models fallback ────────────────────────────────────────────────────
+def ask_github_models(message: str) -> tuple[str, str]:
+    if not GITHUB_TOKEN:
+        return "", "skip"
+    try:
+        res = requests.post(
+            "https://models.inference.ai.azure.com/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": GITHUB_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt_vi()},
+                    {"role": "user", "content": message},
+                ],
+                "max_tokens": 1024,
+            },
+            timeout=30,
+        )
+        if res.status_code != 200:
+            return "", "skip"
+        reply = extract_text_openai_style(res.json())
+        if reply:
+            return reply, f"GitHub Models ({GITHUB_MODEL})"
+        return "", "skip"
+    except Exception:
+        return "", "skip"
 
-    return str(data), "Tavily Search"
+# ── Fallback chain khi Gemini lỗi ────────────────────────────────────────────
+def ai_fallback(message: str, gemini_err: str) -> tuple[str, str]:
+    """Thử lần lượt: OpenRouter → GitHub Models → Tavily."""
+    reply, status = ask_openrouter(message)
+    if status != "skip":
+        return reply, status
 
+    reply, status = ask_github_models(message)
+    if status != "skip":
+        return reply, status
 
-def hermes_fallback(query: str, gemini_err_msg: str) -> tuple[str, str]:
-    """Khi Gemini lỗi, tự động gọi Tavily để tìm kiếm thay thế."""
-    if not TAVILY_API_KEY:
-        return gemini_err_msg, "Lỗi Gemini"
-    result = call_hermes_agent(query)
-    if result.get("ok"):
-        answer, _ = hermes_direct_answer(query, result)
-        return answer, "Tavily Search (Gemini quá tải)"
-    # Hermes cũng lỗi → trả thông báo Gemini gốc
-    return gemini_err_msg, "Lỗi Gemini"
+    reply, status = tavily_answer(message)
+    if "Lỗi" not in status:
+        return reply, f"Tavily Search (Gemini quá tải)"
 
+    return gemini_err, "Lỗi – Tất cả dịch vụ không khả dụng"
 
-def ask_ai(user_message: str, use_search: bool = True):
-    """Gemini answers normally, or calls Hermes-Agent as a Gemini tool."""
+# ── Gemini (main) ─────────────────────────────────────────────────────────────
+def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
     if not GEMINI_API_KEY:
-        return hermes_fallback(user_message, "Hệ thống chưa cấu hình GEMINI_API_KEY.")
+        return ai_fallback(user_message, "Chưa cấu hình GEMINI_API_KEY.")
 
-    now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    system_prompt = (
-        "Bạn là trợ lý tiếng Việt. Trả lời ngắn gọn, tự nhiên. "
-        f"Thời gian hiện tại: {now_str}. "
-        "Khi câu hỏi cần tin tức hoặc dữ liệu mới, hãy gọi tool hermes_agent_search. "
-        "Khi câu hỏi có thể trả lời bằng kiến thức chung, tự trả lời không gọi tool."
-    )
-
-    contents = [
-        {
-            "role": "user",
-            "parts": [{"text": f"{system_prompt}\n\nNguoi dung: {user_message}"}],
-        }
-    ]
     gemini_url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     )
+    contents = [
+        {
+            "role": "user",
+            "parts": [{"text": f"{system_prompt_vi()}\n\nNgười dùng: {user_message}"}],
+        }
+    ]
 
     try:
         payload = {"contents": contents}
@@ -181,47 +213,42 @@ def ask_ai(user_message: str, use_search: bool = True):
         )
         if res.status_code != 200:
             if res.status_code == 429:
-                err_msg = "Gemini đang bận (quá hạn mức). Vui lòng thử lại sau ít phút."
+                err = "Gemini quá hạn mức (429)."
             elif res.status_code in (401, 403):
-                err_msg = "API key Gemini không hợp lệ hoặc không có quyền truy cập."
+                err = "API key Gemini không hợp lệ."
             elif res.status_code >= 500:
-                err_msg = "Máy chủ Gemini đang gặp sự cố. Vui lòng thử lại sau."
+                err = "Máy chủ Gemini lỗi 5xx."
             else:
-                err_msg = f"Gemini lỗi {res.status_code}."
-            return hermes_fallback(user_message, err_msg)
+                err = f"Gemini lỗi {res.status_code}."
+            return ai_fallback(user_message, err)
 
         response_data = res.json()
         candidates = response_data.get("candidates") or []
         if not candidates:
-            return hermes_fallback(user_message, "Gemini không trả về câu trả lời.")
+            return ai_fallback(user_message, "Gemini không trả về candidates.")
 
         candidate_content = candidates[0].get("content", {})
         parts = candidate_content.get("parts", [])
         function_call = next(
-            (part.get("functionCall") for part in parts if part.get("functionCall")),
-            None,
+            (p.get("functionCall") for p in parts if p.get("functionCall")), None
         )
 
+        # Gemini muốn gọi Tavily tool
         if function_call and function_call.get("name") == HERMES_TOOL_NAME:
             args = function_call.get("args") or {}
-            hermes_query = args.get("query") or user_message
-            hermes_locale = args.get("locale") or "vi-VN"
-            hermes_result = call_hermes_agent(hermes_query, hermes_locale)
+            q = args.get("query") or user_message
+            tavily_result = call_tavily(q)
 
             contents.append(candidate_content)
-            contents.append(
-                {
-                    "role": "function",
-                    "parts": [
-                        {
-                            "functionResponse": {
-                                "name": HERMES_TOOL_NAME,
-                                "response": hermes_result,
-                            }
-                        }
-                    ],
-                }
-            )
+            contents.append({
+                "role": "function",
+                "parts": [{
+                    "functionResponse": {
+                        "name": HERMES_TOOL_NAME,
+                        "response": tavily_result,
+                    }
+                }],
+            })
 
             final_res = requests.post(
                 gemini_url,
@@ -229,24 +256,26 @@ def ask_ai(user_message: str, use_search: bool = True):
                 headers={"Content-Type": "application/json"},
                 timeout=30,
             )
-            if final_res.status_code != 200:
-                return hermes_direct_answer(hermes_query, hermes_result)
+            if final_res.status_code == 200:
+                final_reply = extract_text_from_gemini(final_res.json())
+                if final_reply:
+                    return final_reply, "Tavily + Gemini"
+            # Nếu Gemini lỗi ở bước 2, trả thẳng kết quả Tavily
+            if tavily_result.get("ok"):
+                ans = tavily_result["data"].get("answer", "")
+                return ans or json.dumps(tavily_result["data"], ensure_ascii=False), "Tavily Search"
+            return ai_fallback(user_message, "Gemini + Tavily đều lỗi.")
 
-            final_reply = extract_text_from_gemini(final_res.json())
-            if final_reply:
-                return final_reply, "Hermes-Agent + Gemini"
-
-            return hermes_direct_answer(hermes_query, hermes_result)
-
-        reply = "".join(part.get("text", "") for part in parts).strip()
+        reply = "".join(p.get("text", "") for p in parts).strip()
         if not reply:
-            return "Gemini không trả về nội dung text.", "Lỗi Gemini"
-
+            return ai_fallback(user_message, "Gemini trả về rỗng.")
         return reply, "Gemini"
+
     except Exception as exc:
-        return hermes_fallback(user_message, f"Lỗi kết nối Gemini: {exc}")
+        return ai_fallback(user_message, f"Lỗi kết nối Gemini: {exc}")
 
 
+# ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def index():
     return render_template("index.html")
@@ -257,51 +286,98 @@ def chat():
     payload = request.get_json(force=True)
     message = (payload.get("message") or "").strip()
     use_search = payload.get("search", True) is not False
-
     if not message:
         return jsonify({"error": "Nhập nội dung"}), 400
-    reply, search_status = ask_ai(message, use_search)
-    # Classify status type for frontend badge color
-    is_error = any(x in search_status for x in ("Lỗi", "Loi", "Error"))
-    return jsonify({"reply": reply, "search_status": search_status, "is_error": is_error})
+    reply, status = ask_ai(message, use_search)
+    is_error = "Lỗi" in status
+    return jsonify({"reply": reply, "search_status": status, "is_error": is_error})
 
 
 @app.post("/api/get_lyrics")
 def get_lyrics():
     query = request.get_json(force=True).get("query", "").strip()
     if not query:
-        return jsonify({"error": "Chua nhap ten bai hat."}), 400
-
-    prompt = f"Hay cung cap loi bai hat va ca si the hien cho bai hat/cau hat sau: '{query}'."
+        return jsonify({"error": "Chưa nhập tên bài hát."}), 400
+    prompt = f"Cung cấp lời bài hát và ca sĩ thể hiện cho: '{query}'."
     reply, status = ask_ai(prompt, use_search=True)
-
-    if "Toang" in status or "Loi" in status:
+    if "Lỗi" in status:
         return jsonify({"error": reply}), 500
     return jsonify({"lyrics": reply})
 
 
 @app.post("/api/ghost_story")
 def ghost_story():
-    topic = request.get_json(force=True).get("topic", "dem khuya").strip()
-    prompt = f"Sang tac truyen ma ngan rung ron ve: {topic}."
+    topic = request.get_json(force=True).get("topic", "đêm khuya").strip()
+    prompt = f"Sáng tác truyện ma ngắn rùng rợn về: {topic}."
     reply, status = ask_ai(prompt, use_search=False)
-
-    if "Toang" in status or "Loi" in status:
+    if "Lỗi" in status:
         return jsonify({"error": reply}), 500
     return jsonify({"story": reply})
 
 
+# ── Game: Đuổi Hình Bắt Chữ ──────────────────────────────────────────────────
+# Format: "hint" là gợi ý hiển thị (emoji + text), "dapan" là đáp án chuẩn
 NGAN_HANG_CAU_DO = [
-    {"emoji": "moi + son", "dapan": "son moi"},
-    {"emoji": "bap + hat", "dapan": "bap hat"},
-    {"emoji": "ngua + da", "dapan": "ngua da"},
-    {"emoji": "lua + lau", "dapan": "lau thai"},
-    {"emoji": "mat + dai", "dapan": "thi dai"},
-    {"emoji": "khi + cay", "dapan": "khi leo cay"},
-    {"emoji": "may + mua", "dapan": "mua bong may"},
+    # Động vật
+    {"hint": "🐴 + 🦵",        "dapan": "ngựa đá"},
+    {"hint": "🐒 + 🌳",        "dapan": "khỉ leo cây"},
+    {"hint": "🐟 + 🌊",        "dapan": "cá bơi"},
+    {"hint": "🐕 + 🦴",        "dapan": "chó gặm xương"},
+    {"hint": "🐸 + 🍃",        "dapan": "ếch ngồi lá"},
+    {"hint": "🦁 + 👑",        "dapan": "sư tử vua"},
+    {"hint": "🐘 + 👃",        "dapan": "voi vòi dài"},
+    {"hint": "🐧 + ❄️",        "dapan": "chim cánh cụt băng"},
+    {"hint": "🦊 + 🌲",        "dapan": "cáo rừng"},
+    {"hint": "🐺 + 🌕",        "dapan": "sói tru trăng"},
+    # Đồ vật / hành động
+    {"hint": "💋 + 💄",        "dapan": "son môi"},
+    {"hint": "🌽 + 🎵",        "dapan": "bắp hát"},
+    {"hint": "🔥 + 🍲",        "dapan": "lửa nấu lẩu"},
+    {"hint": "☁️ + 🌧️",       "dapan": "mây mưa"},
+    {"hint": "👁️ + 📏",       "dapan": "mắt nhìn thẳng"},
+    {"hint": "✂️ + 📄",        "dapan": "kéo cắt giấy"},
+    {"hint": "🔑 + 🚪",        "dapan": "chìa khóa mở cửa"},
+    {"hint": "📚 + 🌙",        "dapan": "học đêm"},
+    {"hint": "🎸 + 🔥",        "dapan": "guitar điện"},
+    {"hint": "⚽ + 🥅",        "dapan": "đá bóng ghi bàn"},
+    # Thức ăn
+    {"hint": "🍚 + 🍳",        "dapan": "cơm chiên"},
+    {"hint": "🍜 + 🌶️",       "dapan": "mì cay"},
+    {"hint": "🥚 + 💔",        "dapan": "trứng vỡ"},
+    {"hint": "🍰 + 🎂",        "dapan": "bánh sinh nhật"},
+    {"hint": "🧃 + 🍊",        "dapan": "nước cam"},
+    # Thiên nhiên
+    {"hint": "🌞 + 🌊",        "dapan": "nắng biển"},
+    {"hint": "🌸 + 💨",        "dapan": "hoa bay gió"},
+    {"hint": "⛰️ + ❄️",       "dapan": "núi tuyết"},
+    {"hint": "🌈 + ☔",        "dapan": "cầu vồng sau mưa"},
+    {"hint": "🌴 + 🏖️",       "dapan": "dừa bãi biển"},
+    # Con người / cảm xúc
+    {"hint": "😴 + 💤",        "dapan": "ngủ ngon"},
+    {"hint": "😂 + 😭",        "dapan": "khóc cười"},
+    {"hint": "💪 + 🏋️",       "dapan": "tập gym"},
+    {"hint": "🧠 + 💡",        "dapan": "nảy ý tưởng"},
+    {"hint": "👶 + 🍼",        "dapan": "em bé bú sữa"},
+    {"hint": "👩‍❤️‍👨 + 💍", "dapan": "đôi uyên ương"},
+    {"hint": "🤝 + 💼",        "dapan": "bắt tay ký kết"},
+    # Công nghệ
+    {"hint": "💻 + ☕",        "dapan": "lập trình uống cà phê"},
+    {"hint": "📱 + 🔋",        "dapan": "điện thoại sạc pin"},
+    {"hint": "🤖 + 🧠",        "dapan": "robot thông minh"},
+    {"hint": "🎮 + 🕹️",       "dapan": "chơi game"},
+    {"hint": "📡 + 🌐",        "dapan": "phát sóng internet"},
+    # Thành ngữ / vui
+    {"hint": "🐌 + 🏃",        "dapan": "chậm mà chắc"},
+    {"hint": "🦋 + 🌺",        "dapan": "bướm hút mật"},
+    {"hint": "🐜 + 🍎",        "dapan": "kiến tha mồi"},
+    {"hint": "🐓 + 🌅",        "dapan": "gà gáy sáng"},
+    {"hint": "🐢 + 🏁",        "dapan": "rùa về đích"},
+    {"hint": "🦅 + 🏔️",       "dapan": "đại bàng bay cao"},
+    {"hint": "🐝 + 🍯",        "dapan": "ong làm mật"},
+    {"hint": "🦋 + 😴",        "dapan": "nằm mơ hóa bướm"},
 ]
 
-game_memory = {}
+game_memory: dict = {}
 
 
 @app.post("/api/game/riddle")
@@ -309,32 +385,29 @@ def game_riddle():
     cau_do = random.choice(NGAN_HANG_CAU_DO)
     user_ip = request.remote_addr
     game_memory[user_ip] = cau_do["dapan"]
-    return jsonify({"emoji": cau_do["emoji"]})
+    return jsonify({"emoji": cau_do["hint"]})
 
 
 @app.post("/api/game/guess")
 def game_guess():
-    guess = request.get_json(force=True).get("guess", "").lower().strip()
+    guess = (request.get_json(force=True).get("guess") or "").lower().strip()
     user_ip = request.remote_addr
     dapan = game_memory.get(user_ip, "")
-
     if not dapan:
-        return jsonify({"error": "Bam Lay cau do truoc da."}), 400
-
-    if guess == dapan:
+        return jsonify({"error": "Bấm 'Câu hỏi mới' trước đã."}), 400
+    if guess == dapan.lower():
         game_memory.pop(user_ip, None)
-        return jsonify({"correct": True, "message": f"Chuan! Dap an: {dapan.title()}"})
-    return jsonify({"correct": False, "message": "Sai roi!"})
+        return jsonify({"correct": True, "message": f"✅ Chuẩn! Đáp án: {dapan}"})
+    return jsonify({"correct": False, "message": "❌ Sai rồi! Thử lại nhé."})
 
 
 @app.post("/api/game/answer")
 def game_answer():
     user_ip = request.remote_addr
-    dapan = game_memory.get(user_ip, "")
+    dapan = game_memory.pop(user_ip, "")
     if not dapan:
-        return jsonify({"error": "Chua co cau do dang choi."}), 400
-    game_memory.pop(user_ip, None)
-    return jsonify({"message": f"Dap an la: {dapan.title()}"})
+        return jsonify({"error": "Chưa có câu đố đang chơi."}), 400
+    return jsonify({"message": f"Đáp án: {dapan}"})
 
 
 @app.post("/api/clear")
