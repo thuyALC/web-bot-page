@@ -11,8 +11,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "b4-f3a-k3y-p1s-r3pl4c3-1t")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-HERMES_AGENT_URL = os.environ.get("HERMES_AGENT_URL", "").strip()
-HERMES_AGENT_API_KEY = os.environ.get("HERMES_AGENT_API_KEY", "").strip()
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
 
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
@@ -81,59 +80,74 @@ def extract_text_from_gemini(data: dict) -> str:
 
 
 def call_hermes_agent(query: str, locale: str = "vi-VN") -> dict:
-    if not HERMES_AGENT_URL:
-        return {
-            "ok": False,
-            "error": "Chua cau hinh HERMES_AGENT_URL de goi Hermes-Agent.",
-        }
-
-    headers = {"Content-Type": "application/json"}
-    if HERMES_AGENT_API_KEY:
-        headers["Authorization"] = f"Bearer {HERMES_AGENT_API_KEY}"
+    """Gọi Tavily Search API để lấy thông tin mới nhất."""
+    if not TAVILY_API_KEY:
+        return {"ok": False, "error": "Chưa cấu hình TAVILY_API_KEY."}
 
     try:
         res = requests.post(
-            HERMES_AGENT_URL,
-            headers=headers,
-            json={"query": query, "locale": locale},
-            timeout=45,
+            "https://api.tavily.com/search",
+            headers={"Content-Type": "application/json"},
+            json={
+                "api_key": TAVILY_API_KEY,
+                "query": query,
+                "search_depth": "basic",
+                "include_answer": True,
+                "max_results": 5,
+            },
+            timeout=20,
         )
-        if res.status_code >= 400:
-            return {
-                "ok": False,
-                "error": f"Hermes-Agent bao loi {res.status_code}: {res.text}",
-            }
+        if res.status_code != 200:
+            return {"ok": False, "error": f"Tavily lỗi {res.status_code}."}
 
-        try:
-            data = res.json()
-        except ValueError:
-            data = {"text": res.text}
+        data = res.json()
+        # Tavily trả về field "answer" (tóm tắt AI) và "results" (danh sách bài)
+        answer = data.get("answer", "")
+        results = data.get("results", [])
 
-        return {"ok": True, "data": data}
+        if not answer and results:
+            # Tự tổng hợp từ top results nếu không có answer
+            snippets = [
+                f"- {r.get('title', '')}: {r.get('content', '')[:200]}"
+                for r in results[:3]
+            ]
+            answer = "\n".join(snippets)
+
+        return {"ok": True, "data": {"answer": answer, "sources": results}}
     except Exception as exc:
-        return {"ok": False, "error": f"Loi goi Hermes-Agent: {exc}"}
+        return {"ok": False, "error": f"Lỗi kết nối Tavily: {exc}"}
 
 
 def hermes_direct_answer(query: str, result: dict) -> tuple[str, str]:
     if not result.get("ok"):
-        return result.get("error", "Hermes-Agent khong tra ve du lieu."), "Loi Hermes-Agent"
+        return result.get("error", "Hermes-Agent không trả về dữ liệu."), "Lỗi Hermes-Agent"
 
     data = result.get("data")
     if isinstance(data, dict):
         for key in ("answer", "summary", "content", "text", "result"):
             if data.get(key):
-                return str(data[key]), "Hermes-Agent"
-        return json.dumps(data, ensure_ascii=False, indent=2), "Hermes-Agent"
+                return str(data[key]), "Tavily Search"
+        return json.dumps(data, ensure_ascii=False, indent=2), "Tavily Search"
 
-    return str(data), "Hermes-Agent"
+    return str(data), "Tavily Search"
+
+
+def hermes_fallback(query: str, gemini_err_msg: str) -> tuple[str, str]:
+    """Khi Gemini lỗi, tự động gọi Tavily để tìm kiếm thay thế."""
+    if not TAVILY_API_KEY:
+        return gemini_err_msg, "Lỗi Gemini"
+    result = call_hermes_agent(query)
+    if result.get("ok"):
+        answer, _ = hermes_direct_answer(query, result)
+        return answer, "Tavily Search (Gemini quá tải)"
+    # Hermes cũng lỗi → trả thông báo Gemini gốc
+    return gemini_err_msg, "Lỗi Gemini"
 
 
 def ask_ai(user_message: str, use_search: bool = True):
     """Gemini answers normally, or calls Hermes-Agent as a Gemini tool."""
     if not GEMINI_API_KEY:
-        if use_search and looks_like_fresh_query(user_message):
-            return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-        return "Hệ thống chưa cấu hình GEMINI_API_KEY.", "Lỗi"
+        return hermes_fallback(user_message, "Hệ thống chưa cấu hình GEMINI_API_KEY.")
 
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     system_prompt = (
@@ -168,22 +182,18 @@ def ask_ai(user_message: str, use_search: bool = True):
         if res.status_code != 200:
             if res.status_code == 429:
                 err_msg = "Gemini đang bận (quá hạn mức). Vui lòng thử lại sau ít phút."
-            elif res.status_code == 401 or res.status_code == 403:
+            elif res.status_code in (401, 403):
                 err_msg = "API key Gemini không hợp lệ hoặc không có quyền truy cập."
             elif res.status_code >= 500:
                 err_msg = "Máy chủ Gemini đang gặp sự cố. Vui lòng thử lại sau."
             else:
                 err_msg = f"Gemini lỗi {res.status_code}."
-            if use_search and looks_like_fresh_query(user_message):
-                return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-            return err_msg, "Lỗi Gemini"
+            return hermes_fallback(user_message, err_msg)
 
         response_data = res.json()
         candidates = response_data.get("candidates") or []
         if not candidates:
-            if use_search and looks_like_fresh_query(user_message):
-                return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-            return "Gemini không trả về câu trả lời.", "Lỗi Gemini"
+            return hermes_fallback(user_message, "Gemini không trả về câu trả lời.")
 
         candidate_content = candidates[0].get("content", {})
         parts = candidate_content.get("parts", [])
@@ -234,9 +244,7 @@ def ask_ai(user_message: str, use_search: bool = True):
 
         return reply, "Gemini"
     except Exception as exc:
-        if use_search and looks_like_fresh_query(user_message):
-            return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-        return f"Lỗi kết nối: {exc}", "Lỗi Mạng"
+        return hermes_fallback(user_message, f"Lỗi kết nối Gemini: {exc}")
 
 
 @app.get("/")
