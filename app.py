@@ -143,7 +143,7 @@ def read_url():
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
+            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.5"
         }
         res = requests.get(url, headers=headers, timeout=15)
         res.raise_for_status()
@@ -170,4 +170,16 @@ def read_url():
             if paragraphs:
                 content = "\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 20])
             else:
-                content = soup.get_text(separator='\n', strip
+                content = soup.get_text(separator='\n', strip=True)
+        
+        content = re.sub(r'\n\s*\n', '\n\n', content)
+        
+        if len(content) < 150:
+            return jsonify({"error": "Bị Cloudflare chặn mõm hoặc web không có chữ."}), 400
+            
+        return jsonify({"title": title, "content": content})
+    except Exception as e:
+        return jsonify({"error": f"Lỗi cào web: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
