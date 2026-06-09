@@ -133,14 +133,14 @@ def ask_ai(user_message: str, use_search: bool = True):
     if not GEMINI_API_KEY:
         if use_search and looks_like_fresh_query(user_message):
             return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-        return "He thong chua cau hinh GEMINI_API_KEY.", "Loi"
+        return "Hệ thống chưa cấu hình GEMINI_API_KEY.", "Lỗi"
 
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     system_prompt = (
-        "Ban la tro ly tieng Viet. Tra loi ngan gon, tu nhien. "
-        f"Thoi gian hien tai: {now_str}. "
-        "Khi cau hoi can tin tuc hoac du lieu moi, hay goi tool hermes_agent_search. "
-        "Khi cau hoi co the tra loi bang kien thuc chung, tu tra loi khong goi tool."
+        "Bạn là trợ lý tiếng Việt. Trả lời ngắn gọn, tự nhiên. "
+        f"Thời gian hiện tại: {now_str}. "
+        "Khi câu hỏi cần tin tức hoặc dữ liệu mới, hãy gọi tool hermes_agent_search. "
+        "Khi câu hỏi có thể trả lời bằng kiến thức chung, tự trả lời không gọi tool."
     )
 
     contents = [
@@ -166,16 +166,24 @@ def ask_ai(user_message: str, use_search: bool = True):
             timeout=30,
         )
         if res.status_code != 200:
+            if res.status_code == 429:
+                err_msg = "Gemini đang bận (quá hạn mức). Vui lòng thử lại sau ít phút."
+            elif res.status_code == 401 or res.status_code == 403:
+                err_msg = "API key Gemini không hợp lệ hoặc không có quyền truy cập."
+            elif res.status_code >= 500:
+                err_msg = "Máy chủ Gemini đang gặp sự cố. Vui lòng thử lại sau."
+            else:
+                err_msg = f"Gemini lỗi {res.status_code}."
             if use_search and looks_like_fresh_query(user_message):
                 return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-            return f"Gemini bao loi {res.status_code}: {res.text}", "Loi Gemini"
+            return err_msg, "Lỗi Gemini"
 
         response_data = res.json()
         candidates = response_data.get("candidates") or []
         if not candidates:
             if use_search and looks_like_fresh_query(user_message):
                 return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-            return "Gemini khong tra ve cau tra loi.", "Loi Gemini"
+            return "Gemini không trả về câu trả lời.", "Lỗi Gemini"
 
         candidate_content = candidates[0].get("content", {})
         parts = candidate_content.get("parts", [])
@@ -222,13 +230,13 @@ def ask_ai(user_message: str, use_search: bool = True):
 
         reply = "".join(part.get("text", "") for part in parts).strip()
         if not reply:
-            return "Gemini khong tra ve noi dung text.", "Loi Gemini"
+            return "Gemini không trả về nội dung text.", "Lỗi Gemini"
 
         return reply, "Gemini"
     except Exception as exc:
         if use_search and looks_like_fresh_query(user_message):
             return hermes_direct_answer(user_message, call_hermes_agent(user_message))
-        return f"Loi goi Gemini: {exc}", "Loi Mang"
+        return f"Lỗi kết nối: {exc}", "Lỗi Mạng"
 
 
 @app.get("/")
@@ -243,9 +251,11 @@ def chat():
     use_search = payload.get("search", True) is not False
 
     if not message:
-        return jsonify({"error": "Nhap noi dung"}), 400
+        return jsonify({"error": "Nhập nội dung"}), 400
     reply, search_status = ask_ai(message, use_search)
-    return jsonify({"reply": reply, "search_status": search_status})
+    # Classify status type for frontend badge color
+    is_error = any(x in search_status for x in ("Lỗi", "Loi", "Error"))
+    return jsonify({"reply": reply, "search_status": search_status, "is_error": is_error})
 
 
 @app.post("/api/get_lyrics")
