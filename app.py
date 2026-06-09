@@ -139,6 +139,45 @@ def ghost_story():
         return jsonify({"error": "Máy chủ đang tắc đường, đéo ai rảnh kể truyện. Vui lòng thử lại sau 1 phút!"}), 500
     except Exception as e:
         return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
+from bs4 import BeautifulSoup
 
+@app.post("/api/read_url")
+def read_url():
+    payload = request.get_json(force=True)
+    url = payload.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "Chưa nhập link truyện."}), 400
+    
+    try:
+        # Ngụy trang thành trình duyệt Chrome để không bị mấy trang web truyện chặn bot
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        res = requests.get(url, headers=headers, timeout=15)
+        res.raise_for_status()
+        
+        # Dùng BeautifulSoup để làm sạch HTML
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        # Lấy tiêu đề chương
+        title = soup.title.string if soup.title else "Không rõ tiêu đề"
+        
+        # Xóa sạch mầm mống quảng cáo, menu, chân trang
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'button']):
+            tag.decompose()
+        
+        # Gom nhặt tất cả các đoạn văn bản chính (Thẻ <p>)
+        paragraphs = soup.find_all('p')
+        if paragraphs:
+            # Lọc bỏ mấy đoạn text quá ngắn (thường là menu rác)
+            content = "\n\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 25])
+        else:
+            # Nếu web không xài thẻ <p>, chơi bài lấy text chay
+            content = soup.get_text(separator='\n', strip=True)
+        
+        if len(content) < 100:
+            return jsonify({"error": "Không bóc được chữ từ web này (có thể nó có lớp bảo vệ chống copy)."}), 400
+            
+        return jsonify({"title": title, "content": content})
+    except Exception as e:
+        return jsonify({"error": f"Lỗi cào web: {str(e)}"}), 500
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
