@@ -2,183 +2,52 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trợ lý Web AI</title>
+  <title>Trợ lý Web AI Đa Năng</title>
   <style>
-    :root { color-scheme: light; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #2c3e50; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 20px; }
-    main { width: min(1000px, 100%); display: grid; gap: 20px; }
-    
-    .panel { background: #ffffff; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e1e8ed; }
-    h1, h2 { margin: 0 0 15px; line-height: 1.3; color: #2c3e50; }
-    h1 { font-size: 24px; font-weight: 700; } 
-    h2 { font-size: 18px; font-weight: 600; }
-    
+    body { font-family: sans-serif; background: #f4f6f8; padding: 20px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    textarea, input { width: 100%; border: 1px solid #ccd6dd; border-radius: 8px; padding: 12px; font: inherit; margin-bottom: 12px; background: #f8f9fa; transition: 0.3s; }
-    textarea:focus, input:focus { border-color: #3498db; outline: none; background: #fff; }
-    textarea { min-height: 100px; resize: vertical; }
-    
-    button { border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; background: #3498db; color: #ffffff; cursor: pointer; transition: 0.2s; }
-    button:hover { background: #2980b9; }
-    button.secondary { background: #7f8c8d; }
-    button.secondary:hover { background: #636e72; }
-    button.warning { background: #e67e22; }
-    button.warning:hover { background: #d35400; }
-    
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
-    
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
-    .status-badge.online { background-color: #d1f2e6; color: #16a085; }
-    .status-badge.offline { background-color: #f2d7d5; color: #c0392b; }
-    .status-badge.loading { background-color: #fcf3cf; color: #f39c12; }
-    
-    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 15px; border-radius: 8px; background: #2c3e50; color: #ecf0f1; line-height: 1.6; }
-    
-    #story-output { white-space: pre-wrap; padding: 15px; border-radius: 8px; background: #fdf2e9; border-left: 4px solid #e67e22; line-height: 1.6; margin-top: 10px; display: none; }
-    
-    .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
-    .caro-container { max-width: 100%; max-height: 350px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 8px; margin: 15px 0; background: #ecf0f1; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 35px); gap: 1px; background: #bdc3c7; width: max-content; padding: 1px;}
-    .caro-cell { width: 35px; height: 35px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; cursor: pointer; user-select: none;}
-    .caro-cell:hover { background: #f1f2f6; }
-    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; }
-
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 10px; } }
+    .panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .caro-grid { display: grid; grid-template-columns: repeat(20, 25px); width: max-content; }
+    .cell { width: 25px; height: 25px; border: 1px solid #ccc; cursor: pointer; text-align: center; }
   </style>
 </head>
 <body>
-  <main>
-    <section class="panel" style="text-align: center; background: #34495e; color: white;">
-      <h1 style="color: white;">🚀 Trợ lý Web AI Đa Năng</h1>
-      <p style="margin: 0; font-size: 14px; opacity: 0.8;">Chatbot Thông Minh - Kể Chuyện - Minigame Giải Trí</p>
-    </section>
-
-    <section class="grid">
-      <div class="panel">
-        <h2>💬 Chat AI</h2>
-        <textarea id="message" placeholder="Hỏi tôi bất cứ điều gì..."></textarea>
-        <div class="row">
-          <button id="send">Gửi tin nhắn</button>
-          <button class="secondary" id="clear">Làm mới</button>
-          <label style="font-size: 14px; cursor: pointer;"><input id="search" type="checkbox" checked> Bật kết nối Web</label>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>👻 Kể Truyện Ma</h2>
-        <input id="story-topic" placeholder="Nhập chủ đề (VD: trường học, bệnh viện...)">
-        <div class="row">
-          <button id="create-story" style="background-color: #8e44ad;">Sáng tác truyện</button>
-        </div>
-        <div id="story-output"></div>
-      </div>
-    </section>
-    
-    <section class="panel">
-      <h2>Kết quả Chat</h2>
-      <div id="chat-status" class="status-badge" style="display: none;"></div>
-      <pre id="result">Hệ thống đã sẵn sàng hỗ trợ bạn.</pre>
-    </section>
-
-    <section class="grid">
-      <div class="panel">
-        <h2>🧩 Đuổi Hình Bắt Chữ</h2>
-        <div class="game-board" id="game-display">❓❔❓</div>
-        <div class="row" style="display: flex;">
-          <input id="game-guess" placeholder="Nhập đáp án của bạn..." style="flex: 1; margin-bottom: 0;">
-          <button id="btn-guess">Đoán</button>
-        </div>
-        <div class="row" style="margin-top: 10px;">
-          <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
-          <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
-        </div>
-        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: #2980b9;">Sẵn sàng!</div>
-      </div>
-
-      <div class="panel">
-        <h2>⭕ Cờ Caro (Đấu với AI)</h2>
-        <div id="caro-status" style="text-align: center; font-weight: bold; color: #27ae60; margin-top: 5px;">Bạn đi trước (Đánh X)</div>
-        <div class="caro-container">
-            <div class="caro-grid" id="caro-board"></div>
-        </div>
-        <div class="row" style="justify-content: center;">
-          <button class="secondary" id="btn-caro-reset">Đầu hàng / Chơi ván mới</button>
-        </div>
-      </div>
-    </section>
-  </main>
+  <div class="grid">
+    <div class="panel">
+        <h1>Chat & Truyện</h1>
+        <textarea id="msg" style="width:100%; height:100px;"></textarea>
+        <button id="send">Chat</button>
+        <hr>
+        <input id="topic" placeholder="Chủ đề truyện ma...">
+        <button id="btn-story">Kể truyện</button>
+        <div id="story" style="white-space:pre-wrap; margin-top:10px;"></div>
+    </div>
+    <div class="panel">
+        <h1>Game Caro (Local)</h1>
+        <div id="caro" class="caro-grid"></div>
+    </div>
+  </div>
 
   <script>
-    // Hàm rút gọn giúp code luôn an toàn không bị sập
-    const getEl = (id) => document.querySelector(id);
-    const addClick = (id, handler) => { 
-        const el = getEl(id); 
-        if (el) el.addEventListener("click", handler); 
+    // Chat AI
+    document.querySelector("#send").onclick = async () => {
+        const res = await fetch("/api/chat", {method: "POST", body: JSON.stringify({message: document.querySelector("#msg").value, search: true}), headers: {"Content-Type": "application/json"}});
+        alert((await res.json()).reply);
+    };
+    
+    // Truyện ma
+    document.querySelector("#btn-story").onclick = async () => {
+        const res = await fetch("/api/ghost_story", {method: "POST", body: JSON.stringify({topic: document.querySelector("#topic").value}), headers: {"Content-Type": "application/json"}});
+        document.querySelector("#story").textContent = (await res.json()).story;
     };
 
-    async function postJson(url, data) {
-      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ.");
-      return json;
+    // Caro tại trình duyệt
+    const board = document.getElementById('caro');
+    for(let i=0; i<400; i++) {
+        const div = document.createElement('div'); div.className = 'cell';
+        div.onclick = function() { this.textContent = 'X'; };
+        board.appendChild(div);
     }
-
-    // ================= LOGIC CHAT AI =================
-    addClick("#send", async () => {
-      const message = getEl("#message")?.value.trim();
-      const search = getEl("#search")?.checked;
-      const resultBox = getEl("#result");
-      const statusBadge = getEl("#chat-status");
-      
-      if (!message) return;
-      
-      statusBadge.style.display = "inline-block";
-      statusBadge.className = "status-badge loading";
-      statusBadge.textContent = "⏳ Đang xử lý...";
-      resultBox.textContent = "Vui lòng chờ trong giây lát...";
-      
-      try {
-        const data = await postJson("/api/chat", { message, search });
-        statusBadge.className = data.search_status.includes("Lỗi") ? "status-badge offline" : "status-badge online";
-        statusBadge.textContent = data.search_status;
-        resultBox.textContent = data.reply;
-      } catch (err) { 
-        statusBadge.className = "status-badge offline";
-        statusBadge.textContent = "❌ Lỗi hệ thống";
-        resultBox.textContent = err.message; 
-      }
-    });
-
-    addClick("#clear", async () => {
-      await postJson("/api/clear", {});
-      if(getEl("#message")) getEl("#message").value = "";
-      if(getEl("#chat-status")) getEl("#chat-status").style.display = "none";
-      if(getEl("#result")) getEl("#result").textContent = "Đã làm mới phiên trò chuyện.";
-    });
-
-    // ================= LOGIC KỂ TRUYỆN MA =================
-    addClick("#create-story", async () => {
-      const topic = getEl("#story-topic")?.value.trim() || "ngẫu nhiên";
-      const output = getEl("#story-output");
-      if(!output) return;
-      
-      output.style.display = "block";
-      output.textContent = "⏳ Đang kết nối với thế giới tâm linh để lấy cốt truyện...";
-      
-      try {
-        const data = await postJson("/api/ghost_story", { topic });
-        output.textContent = data.story || data.error;
-      } catch (err) { 
-        output.textContent = "Lỗi kết nối: " + err.message; 
-      }
-    });
-
-    // ================= GAME ĐUỔI HÌNH BẮT CHỮ =================
-    const gameDisplay = getEl("#game-display");
-    const gameGuess = getEl("#game-guess");
-    const gameStatus = getEl("#game-status");
-
-    addClick("#btn-new-riddle", async () => {
-      if(game
+  </script>
+</body>
+</html>
