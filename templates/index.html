@@ -3,67 +3,164 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trợ lý Web AI Đa Năng</title>
+  <title>Trợ lý Web AI Đa Năng 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { color-scheme: light; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-    main { width: min(980px, 100%); display: grid; gap: 16px; }
-    .panel { background: #ffffff; border: 1px solid #d7dde3; border-radius: 8px; padding: 18px; box-shadow: 0 10px 24px rgba(20, 31, 43, 0.08); }
-    h1, h2 { margin: 0 0 12px; line-height: 1.2; }
-    h1 { font-size: 26px; } h2 { font-size: 18px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    textarea, input { width: 100%; border: 1px solid #b8c2cc; border-radius: 6px; padding: 11px 12px; font: inherit; margin-bottom: 8px;}
-    textarea { min-height: 100px; resize: vertical; }
-    button { border: 0; border-radius: 6px; padding: 11px 14px; font: inherit; font-weight: 700; background: #146c5c; color: #ffffff; cursor: pointer; transition: 0.2s; }
-    button:hover { background: #0f5447; }
-    button.secondary { background: #3f4b57; }
-    button.secondary:hover { background: #2c353e; }
-    button.warning { background: #d35400; }
-    button.warning:hover { background: #a84300; }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;}
-    pre { min-height: 100px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 14px; border-radius: 6px; background: #101820; color: #e8f0f2; line-height: 1.5; }
+    :root { 
+      color-scheme: light; 
+      font-family: 'Inter', sans-serif; 
+      /* Dải màu rực rỡ 3D */
+      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --text-main: #2c3e50;
+      --text-sub: #7f8c8d;
+      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      --shadow-button: 3px 3px 6px #c8c8c8, -3px -3px 6px #ffffff;
+      --shadow-button-active: inset 2px 2px 5px #c8c8c8, inset -2px -2px 5px #ffffff;
+      
+      /* Màu sắc các mục */
+      --color-chat: #1abc9c;
+      --color-lyric: #3498db;
+      --color-ghost: #8e44ad;
+      --color-game: #e67e22;
+    }
     
-    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-family: inherit; font-size: 15px; line-height: 1.6; background: #1a1a2e; color: #e0e0e0; border-left: 4px solid #c0392b; padding: 16px; border-radius: 4px;}
-    .read-output { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; background: #fdf2e9; color: #2c3e50; border-left: 4px solid #3498db; padding: 16px; border-radius: 4px; font-family: 'Times New Roman', serif; font-size: 16px; line-height: 1.8;}
+    * { box-sizing: border-box; transition: all 0.2s ease-in-out; }
     
-    .game-board { font-size: 50px; text-align: center; padding: 20px; margin: 10px 0; background: #eaf1f1; border-radius: 12px; letter-spacing: 10px;}
+    body { 
+      margin: 0; 
+      min-height: 100vh; 
+      display: grid; 
+      place-items: center; 
+      padding: 24px; 
+      background: var(--bg-gradient);
+    }
     
-    .caro-container { max-width: 100%; max-height: 380px; overflow: auto; border: 2px solid #b8c2cc; border-radius: 8px; margin: 15px 0; background: #eaf1f1; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 35px); gap: 1px; background: #b8c2cc; width: max-content; padding: 1px;}
-    .caro-cell { width: 35px; height: 35px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; cursor: pointer; user-select: none;}
-    .caro-cell:hover { background: #dce7e7; }
-    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; }
+    main { 
+      width: min(1000px, 100%); 
+      display: grid; 
+      gap: 20px; 
+    }
     
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 12px; } }
+    /* Panel phong cách Kính mờ 3D */
+    .panel { 
+      background: var(--panel-bg); 
+      backdrop-filter: blur(4px); 
+      -webkit-backdrop-filter: blur(4px); 
+      border-radius: 20px; 
+      padding: 25px; 
+      box-shadow: var(--shadow-light); 
+      border: 1px solid rgba(255, 255, 255, 0.2); 
+    }
+    .panel:hover { transform: translateY(-3px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
+    
+    h1, h2 { margin: 0 0 15px; line-height: 1.2; color: var(--text-main); }
+    h1 { font-size: 30px; font-weight: 700; background: linear-gradient(to right, #2c3e50, #4ca1af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } 
+    h2 { font-size: 20px; font-weight: 600; }
+    
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    
+    /* Input phong cách 3D lõm */
+    textarea, input { 
+      width: 100%; 
+      border: 1px solid #ccd6dd; 
+      border-radius: 12px; 
+      padding: 14px; 
+      font: inherit; 
+      margin-bottom: 10px; 
+      background: #f8f9fa; 
+      box-shadow: inset 2px 2px 5px #e0e0e0, inset -2px -2px 5px #ffffff;
+      outline: none;
+    }
+    textarea:focus, input:focus { border-color: var(--color-lyric); background: #fff; }
+    textarea { min-height: 120px; resize: vertical; }
+    
+    /* Nút bấm phong cách 3D nổi Neumorphic */
+    button { 
+      border: 0; 
+      border-radius: 12px; 
+      padding: 12px 18px; 
+      font: inherit; 
+      font-weight: 700; 
+      color: #ffffff; 
+      cursor: pointer; 
+      background: #3498db; 
+      box-shadow: var(--shadow-button);
+      position: relative;
+    }
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    button:active { box-shadow: var(--shadow-button-active); transform: translateY(1px); }
+    
+    button.secondary { background: #7f8c8d; }
+    button.warning { background: #e67e22; }
+    
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
+    
+    /* Kết quả chuyên nghiệp màu tối */
+    pre { 
+      min-height: 100px; 
+      white-space: pre-wrap; 
+      overflow-wrap: anywhere; 
+      margin: 0; 
+      padding: 18px; 
+      border-radius: 12px; 
+      background: #2c3e50; 
+      color: #ecf0f1; 
+      line-height: 1.6; 
+      font-size: 14px;
+      box-shadow: inset 3px 3px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Output Box Ma & Lyric màu sắc rực rỡ */
+    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-size: 15px; line-height: 1.7; background: linear-gradient(135deg, #2c3e50, #1a1a2e); color: #e0e0e0; border-left: 5px solid var(--color-ghost); padding: 18px; border-radius: 8px; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);}
+    .lyric-output { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; background: #fffdf9; color: #2c3e50; border-left: 5px solid var(--color-lyric); padding: 18px; border-radius: 8px; font-size: 16px; line-height: 1.8; white-space: pre-wrap; box-shadow: 5px 5px 15px rgba(0,0,0,0.05);}
+    
+    /* Game Game 3D */
+    .game-board { font-size: 60px; text-align: center; padding: 25px; margin: 15px 0; background: #eaf1f1; border-radius: 15px; letter-spacing: 12px; box-shadow: inset 3px 3px 8px #c8d6d6, inset -3px -3px 8px #ffffff;}
+    
+    .caro-container { max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 12px; margin: 15px 0; background: #eaf1f1; box-shadow: inset 2px 2px 5px #c8d6d6;}
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 1px; background: #ccd6dd; width: max-content; padding: 1px;}
+    .caro-cell { width: 38px; height: 38px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; user-select: none;}
+    .caro-cell:hover { background: #f0f3f3; }
+    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; animation: winPulse 1s infinite; }
+    
+    /* Checkbox chuyên nghiệp */
+    label input[type="checkbox"] { width: auto; margin-right: 8px; cursor: pointer; transform: scale(1.2); }
+    label { font-size: 14px; color: var(--text-sub); cursor: pointer; display: flex; align-items: center; }
+    
+    /* Animation thắng cuộc */
+    @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    
+    /* Mobile responsive */
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 15px; } h1 { font-size: 26px; } }
   </style>
 </head>
 <body>
   <main>
-    <section class="panel">
-      <h1>Trợ lý Web AI Đa Năng</h1>
-      <p style="color: #5b6875; margin: 0;">Chatbot (Chống sập) - Đọc truyện siêu sạch - Minigame Offline</p>
+    <section class="panel" style="text-align: center;">
+      <h1>🚀 Trợ lý Web AI Đa Năng 3D</h1>
+      <p style="color: var(--text-sub); margin: 0; font-size: 15px;">Chatbot Fallback - Tìm Lyrics Bài Hát - Minigame 3D</p>
     </section>
 
     <section class="grid">
-      <div class="panel">
-        <h2>💬 Chat AI (Auto-Fallback)</h2>
-        <textarea id="message" placeholder="Nhập câu hỏi..."></textarea>
+      <div class="panel" style="border-top: 4px solid var(--color-chat);">
+        <h2>💬 Chat AI (Gemini + Groq)</h2>
+        <textarea id="message" placeholder="Nhập câu hỏi tại đây..."></textarea>
         <div class="row">
-          <button id="send">Gửi tin nhắn</button>
+          <button id="send" style="background: var(--color-chat);">Gửi tin nhắn</button>
           <button class="secondary" id="clear">Xóa nhớ</button>
           <label><input id="search" type="checkbox" checked> Nối mạng web</label>
         </div>
       </div>
 
-      <div class="panel">
-        <h2>📖 Đọc Truyện (Chống Ads)</h2>
-        <input id="story-url" placeholder="Dán link chương truyện (TruyenFull, v.v...) vào đây">
+      <div class="panel" style="border-top: 4px solid var(--color-lyric);">
+        <h2>🎶 Tìm Lời Bài Hát (Lyrics)</h2>
+        <input id="song-query" placeholder="Nhập tên bài hát hoặc 1 câu hát...">
         <div class="row">
-          <button id="btn-read" style="background: #2980b9;">Bóc tách nội dung</button>
+          <button id="btn-lyric" style="background: var(--color-lyric);">Tìm Lyric 3D</button>
         </div>
-        <div id="read-status" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: #146c5c;"></div>
-        <div class="read-output" id="read-output"></div>
+        <div id="lyric-status" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: var(--color-chat);"></div>
+        <div class="lyric-output" id="lyric-output"></div>
       </div>
     </section>
 
@@ -73,34 +170,247 @@
     </section>
 
     <section class="grid">
-      <div class="panel">
-        <h2>👻 Kể Truyện Ma</h2>
-        <input id="story-topic" placeholder="Chủ đề (VD: Up ROM đêm khuya, ở trọ...)">
+      <div class="panel" style="border-top: 4px solid var(--color-ghost);">
+        <h2>👻 Kể Truyện Ma ua Gemini</h2>
+        <input id="story-topic" placeholder="Chủ đề (VD: trọ đêm, trường học...)">
         <div class="row">
-          <button id="create-story" style="background: #8e44ad;">Sáng tác truyện</button>
+          <button id="create-story" style="background: var(--color-ghost);">Triệu hồi truyện</button>
         </div>
-        <div id="story-status" style="font-size: 14px; color: #d35400; font-weight: bold; margin-top: 10px;"></div>
+        <div id="story-status" style="font-size: 14px; color: var(--color-game); font-weight: bold; margin-top: 10px;"></div>
         <div class="story-output" id="story-output"></div>
       </div>
 
-      <div class="panel">
-        <h2>🧩 Đuổi Hình Bắt Chữ</h2>
+      <div class="panel" style="border-top: 4px solid var(--color-game);">
+        <h2>🧩 Đuổi Hình Bắt Chữ (Local)</h2>
         <div class="game-board" id="game-display">❓❔❓</div>
         <div class="row" style="display: flex;">
-          <input id="game-guess" placeholder="Nhập đáp án của bạn..." style="flex: 1; margin-bottom: 0;">
-          <button id="btn-guess">Đoán</button>
+          <input id="game-guess" placeholder="Đáp án của bạn..." style="flex: 1; margin-bottom: 0; border-radius: 12px 0 0 12px;">
+          <button id="btn-guess" style="border-radius: 0 12px 12px 0; background: var(--color-game); padding: 0 25px;">Đoán</button>
         </div>
-        <div class="row" style="margin-top: 5px;">
+        <div class="row" style="margin-top: 10px;">
           <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
           <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
         </div>
-        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: #146c5c;">Sẵn sàng! Bấm "Câu hỏi mới" để chơi.</div>
+        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: var(--color-chat);">Sẵn sàng!</div>
+      </div>
+    </section>
+
+    <section class="panel" style="border-top: 4px solid var(--color-game);">
+        <h2>⭕ Cờ Caro (Đấu với AI Local)</h2>
+        <div id="caro-status" style="text-align: center; font-weight: bold; color: var(--color-chat); margin-top: 5px;">Bạn đi trước (Đánh X)To make the interface "beautiful," "professional," "3D," and have "vibrant/lively colors," a total redesign is needed. Here is a strategy to shift the design philosophy to a mix of **Glassmorphism** (frosted glass), **Neumorphism** (extruded shadows), and powerful, lively color gradients.
+
+I have optimized your `index.html` file with the following changes:
+
+1.  **Fonts and Background:** It uses a dynamic gradient background and a modern font called "Inter".
+2.  **Panels (Cards):** These now have a "frosted glass" effect with large rounded corners and deep shadows to give them a significant 3D lift. There is also a subtle hover effect.
+3.  **Buttons and Inputs:** These use the Neumorphic "extruded" look, featuring lively color gradients and a "pushed in" (active) effect when clicked.
+4.  **Caro Board & Game Emoji:** The coloring is much cleaner and more professional.
+5.  **Grid Structure:** The grid is kept, but with more logical gaps and padding.
+
+Copy the entire content below and replace your current `templates/index.html` file with it:
+
+```html
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trợ lý Web AI Đa Năng 3D</title>
+  <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
+  <style>
+    :root { 
+      color-scheme: light; 
+      font-family: 'Inter', sans-serif; 
+      /* Vibrant 3D gradients */
+      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --text-main: #2c3e50;
+      --text-sub: #7f8c8d;
+      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      --shadow-button: 3px 3px 6px #c8c8c8, -3px -3px 6px #ffffff;
+      --shadow-button-active: inset 2px 2px 5px #c8c8c8, inset -2px -2px 5px #ffffff;
+      
+      /* Lively section colors */
+      --color-chat: #1abc9c;
+      --color-lyric: #3498db;
+      --color-ghost: #8e44ad;
+      --color-game: #e67e22;
+    }
+    
+    * { box-sizing: border-box; transition: all 0.2s ease-in-out; }
+    
+    body { 
+      margin: 0; 
+      min-height: 100vh; 
+      display: grid; 
+      place-items: center; 
+      padding: 24px; 
+      background: var(--bg-gradient);
+    }
+    
+    main { 
+      width: min(1000px, 100%); 
+      display: grid; 
+      gap: 20px; 
+    }
+    
+    /* Panel Glassmorphism style with 3D lift */
+    .panel { 
+      background: var(--panel-bg); 
+      backdrop-filter: blur(4px); 
+      -webkit-backdrop-filter: blur(4px); 
+      border-radius: 20px; 
+      padding: 25px; 
+      box-shadow: var(--shadow-light); 
+      border: 1px solid rgba(255, 255, 255, 0.2); 
+    }
+    .panel:hover { transform: translateY(-3px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
+    
+    h1, h2 { margin: 0 0 15px; line-height: 1.2; color: var(--text-main); }
+    h1 { font-size: 30px; font-weight: 700; background: linear-gradient(to right, #2c3e50, #4ca1af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } 
+    h2 { font-size: 20px; font-weight: 600; }
+    
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    
+    /* Immersed 3D Input style */
+    textarea, input { 
+      width: 100%; 
+      border: 1px solid #ccd6dd; 
+      border-radius: 12px; 
+      padding: 14px; 
+      font: inherit; 
+      margin-bottom: 10px; 
+      background: #f8f9fa; 
+      box-shadow: inset 2px 2px 5px #e0e0e0, inset -2px -2px 5px #ffffff;
+      outline: none;
+    }
+    textarea:focus, input:focus { border-color: var(--color-lyric); background: #fff; }
+    textarea { min-height: 120px; resize: vertical; }
+    
+    /* Extruded 3D Neumorphic Button style */
+    button { 
+      border: 0; 
+      border-radius: 12px; 
+      padding: 12px 18px; 
+      font: inherit; 
+      font-weight: 700; 
+      color: #ffffff; 
+      cursor: pointer; 
+      background: #3498db; 
+      box-shadow: var(--shadow-button);
+      position: relative;
+    }
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    button:active { box-shadow: var(--shadow-button-active); transform: translateY(1px); }
+    
+    button.secondary { background: #7f8c8d; }
+    button.warning { background: #e67e22; }
+    
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
+    
+    /* Dark professional output text */
+    pre { 
+      min-height: 100px; 
+      white-space: pre-wrap; 
+      overflow-wrap: anywhere; 
+      margin: 0; 
+      padding: 18px; 
+      border-radius: 12px; 
+      background: #2c3e50; 
+      color: #ecf0f1; 
+      line-height: 1.6; 
+      font-size: 14px;
+      box-shadow: inset 3px 3px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Ghost & Lyric Output Boxes with deep shadows and lively side-borders */
+    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-size: 15px; line-height: 1.7; background: linear-gradient(135deg, #2c3e50, #1a1a2e); color: #e0e0e0; border-left: 5px solid var(--color-ghost); padding: 18px; border-radius: 8px; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);}
+    .lyric-output { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; background: #fffdf9; color: #2c3e50; border-left: 5px solid var(--color-lyric); padding: 18px; border-radius: 8px; font-size: 16px; line-height: 1.8; white-space: pre-wrap; box-shadow: 5px 5px 15px rgba(0,0,0,0.05);}
+    
+    /* Immersed Game Game Board style */
+    .game-board { font-size: 60px; text-align: center; padding: 25px; margin: 15px 0; background: #eaf1f1; border-radius: 15px; letter-spacing: 12px; box-shadow: inset 3px 3px 8px #c8d6d6, inset -3px -3px 8px #ffffff;}
+    
+    /* Immersed Caro Game grid style */
+    .caro-container { max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 12px; margin: 15px 0; background: #eaf1f1; box-shadow: inset 2px 2px 5px #c8d6d6;}
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 1px; background: #ccd6dd; width: max-content; padding: 1px;}
+    .caro-cell { width: 38px; height: 38px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; user-select: none;}
+    .caro-cell:hover { background: #f0f3f3; }
+    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; animation: winPulse 1s infinite; }
+    
+    /* Checkbox professional style */
+    label input[type="checkbox"] { width: auto; margin-right: 8px; cursor: pointer; transform: scale(1.2); }
+    label { font-size: 14px; color: var(--text-sub); cursor: pointer; display: flex; align-items: center; }
+    
+    /* Victory pulse animation */
+    @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    
+    /* Mobile responsive tweaks */
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 15px; } h1 { font-size: 26px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel" style="text-align: center;">
+      <h1>🚀 Trợ lý Web AI Đa Năng 3D</h1>
+      <p style="color: var(--text-sub); margin: 0; font-size: 15px;">Chatbot Fallback - Tìm Lyrics Bài Hát - Minigame 3D</p>
+    </section>
+
+    <section class="grid">
+      <div class="panel" style="border-top: 4px solid var(--color-chat);">
+        <h2>💬 Chat AI (Gemini + Groq)</h2>
+        <textarea id="message" placeholder="Nhập câu hỏi tại đây..."></textarea>
+        <div class="row">
+          <button id="send" style="background: var(--color-chat);">Gửi tin nhắn</button>
+          <button class="secondary" id="clear">Xóa nhớ</button>
+          <label><input id="search" type="checkbox" checked> Nối mạng web</label>
+        </div>
+      </div>
+
+      <div class="panel" style="border-top: 4px solid var(--color-lyric);">
+        <h2>🎶 Tìm Lời Bài Hát (Lyrics)</h2>
+        <input id="song-query" placeholder="Nhập tên bài hát hoặc 1 câu hát...">
+        <div class="row">
+          <button id="btn-lyric" style="background: var(--color-lyric);">Tìm Lyric 3D</button>
+        </div>
+        <div id="lyric-status" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: var(--color-chat);"></div>
+        <div class="lyric-output" id="lyric-output"></div>
       </div>
     </section>
 
     <section class="panel">
+      <h2>Kết quả Chat</h2>
+      <pre id="result">Hệ thống đã sẵn sàng hỗ trợ bạn.</pre>
+    </section>
+
+    <section class="grid">
+      <div class="panel" style="border-top: 4px solid var(--color-ghost);">
+        <h2>👻 Kể Truyện Ma ua Gemini</h2>
+        <input id="story-topic" placeholder="Chủ đề (VD: trọ đêm, trường học...)">
+        <div class="row">
+          <button id="create-story" style="background: var(--color-ghost);">Triệu hồi truyện</button>
+        </div>
+        <div id="story-status" style="font-size: 14px; color: var(--color-game); font-weight: bold; margin-top: 10px;"></div>
+        <div class="story-output" id="story-output"></div>
+      </div>
+
+      <div class="panel" style="border-top: 4px solid var(--color-game);">
+        <h2>🧩 Đuổi Hình Bắt Chữ (Local)</h2>
+        <div class="game-board" id="game-display">❓❔❓</div>
+        <div class="row" style="display: flex;">
+          <input id="game-guess" placeholder="Đáp án của bạn..." style="flex: 1; margin-bottom: 0; border-radius: 12px 0 0 12px;">
+          <button id="btn-guess" style="border-radius: 0 12px 12px 0; background: var(--color-game); padding: 0 25px;">Đoán</button>
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
+          <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
+        </div>
+        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: var(--color-chat);">Sẵn sàng!</div>
+      </div>
+    </section>
+
+    <section class="panel" style="border-top: 4px solid var(--color-game);">
         <h2>⭕ Cờ Caro (Đấu với AI Local)</h2>
-        <div id="caro-status" style="text-align: center; font-weight: bold; color: #146c5c; margin-top: 5px;">Bạn đi trước (Đánh X)</div>
+        <div id="caro-status" style="text-align: center; font-weight: bold; color: var(--color-chat); margin-top: 5px;">Bạn đi trước (Đánh X)</div>
         <div class="row" style="justify-content: center; margin-top: 10px;">
           <button class="secondary" id="btn-caro-reset">Đầu hàng / Chơi ván mới</button>
         </div>
@@ -111,7 +421,6 @@
   </main>
 
   <script>
-    // Utility fetch function
     async function postJson(url, data) {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const json = await res.json();
@@ -119,7 +428,7 @@
       return json;
     }
 
-    // ================= CHAT AI =================
+    // ================= CHAT AI LOGIC =================
     let chatHistory = [];
     const resultBox = document.querySelector("#result");
     
@@ -127,7 +436,7 @@
       const message = document.querySelector("#message").value.trim();
       const search = document.querySelector("#search").checked;
       if (!message) return;
-      resultBox.textContent = "Đang suy nghĩ (nếu lâu quá bot sẽ tự gọi cứu viện)...";
+      resultBox.textContent = "Đang suy nghĩ (nếu lâu quá bot sẽ tự gọi cứu viện Groq)...";
       try {
         const data = await postJson("/api/chat", { message, search, history: chatHistory });
         chatHistory = data.history; 
@@ -141,37 +450,36 @@
       resultBox.textContent = "Đã xóa trí nhớ tạm.";
     });
 
-    // ================= ĐỌC TRUYỆN =================
-    document.querySelector("#btn-read").addEventListener("click", async () => {
-      const url = document.querySelector("#story-url").value.trim();
-      const status = document.querySelector("#read-status");
-      const output = document.querySelector("#read-output");
+    // ================= TÌM LYRIC LOGIC =================
+    document.querySelector("#btn-lyric").addEventListener("click", async () => {
+      const query = document.querySelector("#song-query").value.trim();
+      const status = document.querySelector("#lyric-status");
+      const output = document.querySelector("#lyric-output");
       
-      if (!url) { status.textContent = "Dán link chương truyện vào đã!"; status.style.color = "#d35400"; return; }
+      if (!query) { status.textContent = "Nhập tên bài hát hoặc 1 câu hát đi đã!"; status.style.color = "#d35400"; return; }
       
-      status.textContent = "Đang phi tới trang web để hút nội dung, diệt quảng cáo...";
-      status.style.color = "#146c5c";
+      status.textContent = "Đang lục lọi trí nhớ âm nhạc 3D...";
+      status.style.color = var(--color-chat);
       output.style.display = "none";
       
       try {
-        const data = await postJson("/api/read_url", { url });
-        const formattedContent = data.content.replace(/\n/g, '<br><br>');
-        output.innerHTML = `<h3 style="margin-top:0; border-bottom: 1px solid #ccc; padding-bottom: 10px;">${data.title}</h3><div>${formattedContent}</div>`;
+        const data = await postJson("/api/get_lyrics", { query });
+        output.textContent = data.lyrics; // Use textContent to preserve \n
         output.style.display = "block";
-        status.textContent = "Đã dọn dẹp sạch sẽ! Đọc đi cho sướng mắt.";
+        status.textContent = "Đã tìm thấy bài hát! Cầm mic lên thôi 🎤";
       } catch (err) { 
         status.textContent = "Toang: " + err.message; 
         status.style.color = "#d35400";
       }
     });
 
-    // ================= TRUYỆN MA =================
+    // ================= TRUYỆN MA LOGIC =================
     document.querySelector("#create-story").addEventListener("click", async () => {
       const topic = document.querySelector("#story-topic").value.trim();
       const status = document.querySelector("#story-status");
       const output = document.querySelector("#story-output");
       if (!topic) { status.textContent = "Nhập chủ đề vào đã!"; return; }
-      status.textContent = "Đang rặn chữ... Đợi tí.";
+      status.textContent = "Đang rặn chữ 3D... Đợi tí.";
       output.style.display = "none";
       try {
         const data = await postJson("/api/ghost_story", { topic });
@@ -181,7 +489,7 @@
       } catch (err) { status.textContent = err.message; }
     });
 
-    // ================= ĐUỔI HÌNH BẮT CHỮ =================
+    // ================= ĐUỔI HÌNH BẮT CHỮ LOCAL LOGIC =================
     const riddles = [
         {"emoji": "👄💄", "ans": "son môi", "exp": "Cái môi + thỏi son"},
         {"emoji": "🌽🎤", "ans": "bắp hát", "exp": "Trái bắp + cái micro"},
@@ -204,12 +512,12 @@
         currentRiddle = riddles[Math.floor(Math.random() * riddles.length)];
         gameDisplay.textContent = currentRiddle.emoji;
         gameStatus.textContent = "Đã có câu đố! Đoán xem đây là từ gì?";
-        gameStatus.style.color = "#146c5c";
+        gameStatus.style.color = var(--color-chat);
         gameGuess.value = "";
     };
 
     document.querySelector("#btn-guess").onclick = () => {
-        if(!currentRiddle) { gameStatus.textContent = "Chưa có câu đố, bấm Lấy câu đố đi!"; return; }
+        if(!currentRiddle) { gameStatus.textContent = "Chưa có câu đố, bấm Câu hỏi mới đi!"; return; }
         const guess = gameGuess.value.trim();
         if(removeAccents(guess) === removeAccents(currentRiddle.ans)) {
             gameStatus.textContent = `Chính xác! Đáp án: ${currentRiddle.ans} (${currentRiddle.exp})`;
@@ -229,7 +537,7 @@
         currentRiddle = null;
     };
 
-    // ================= CỜ CARO =================
+    // ================= CỜ CARO LOCAL LOGIC =================
     const BOARD_SIZE = 25;
     const caroBoard = document.getElementById('caro-board');
     const caroStatus = document.getElementById('caro-status');
@@ -314,7 +622,7 @@
             const win = checkCaroWin(bestMove.r, bestMove.c, 'O');
             if (win) {
                 win.forEach(([wr, wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add('win-cell'));
-                caroStatus.textContent = 'Máy thắng! Khóc đi kkk 😆'; caroStatus.style.color = '#d35400'; caroActive = false;
+                caroStatus.textContent = 'Máy thắng 3D! Bạn thua rồi kkk 😆'; caroStatus.style.color = '#d35400'; caroActive = false;
             } else caroStatus.textContent = 'Tới lượt bạn (Đánh X)';
         }
     }
@@ -330,7 +638,7 @@
             win.forEach(([wr, wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add('win-cell'));
             caroStatus.textContent = 'Bạn thắng rồi! Quá xuất sắc 🎉'; caroStatus.style.color = '#27ae60'; caroActive = false;
         } else {
-            caroStatus.textContent = 'Máy đang nghĩ...'; setTimeout(botCaroMove, 50); 
+            caroStatus.textContent = 'Máy đang nghĩ 3D...'; setTimeout(botCaroMove, 50); 
         }
     }
 
