@@ -3,7 +3,6 @@ import requests
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
@@ -77,7 +76,6 @@ def ask_ai(user_message: str, use_search: bool = True, chat_history: list = None
 
         res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
 
-        # NẾU GEMINI BẬN THÌ ĐÁ SANG GROQ
         if res.status_code != 200:
             return ask_groq_fallback(user_message, use_search, chat_history)
 
@@ -121,7 +119,6 @@ def ghost_story():
         if res.status_code == 200:
             return jsonify({"story": res.json()["candidates"][0]["content"]["parts"][0]["text"]})
         
-        # Groq Fallback cho truyện ma
         if GROQ_API_KEY:
             g_res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -137,35 +134,37 @@ def ghost_story():
     except Exception as e:
         return jsonify({"error": f"Lỗi kỹ thuật: {str(e)}"}), 500
 
-@app.post("/api/read_url")
-def read_url():
+# ================= ĐỔI HÀM ĐỌC TRUYỆN THÀNH TÌM LỜI BÀI HÁT =================
+@app.post("/api/get_lyrics")
+def get_lyrics():
     payload = request.get_json(force=True)
-    url = payload.get("url", "").strip()
-    if not url: return jsonify({"error": "Chưa nhập link truyện."}), 400
+    query = payload.get("query", "").strip()
+    if not query: return jsonify({"error": "Chưa nhập tên bài hát hoặc câu hát."}), 400
+    
+    prompt = f"Hãy tìm và cung cấp lời bài hát (lyrics) dựa trên thông tin sau: '{query}'. Nếu đây là một câu hát, hãy cho biết tên bài hát và ca sĩ trình bày trước khi in ra toàn bộ lời bài hát."
     
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-        res = requests.get(url, headers=headers, timeout=15)
-        res.raise_for_status()
+        # Gọi Gemini
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        res = requests.post(url, json={"contents": [{"role": "user", "parts": [{"text": prompt}]}]}, timeout=30)
         
-        soup = BeautifulSoup(res.text, "html.parser")
-        title = soup.title.string if soup.title else "Không rõ tiêu đề"
-        
-        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'button']):
-            tag.decompose()
-        
-        paragraphs = soup.find_all('p')
-        if paragraphs:
-            content = "\n\n".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 25])
-        else:
-            content = soup.get_text(separator='\n', strip=True)
-        
-        if len(content) < 100:
-            return jsonify({"error": "Không bóc được chữ từ web này (có thể nó có lớp bảo vệ chống copy)."}), 400
+        if res.status_code == 200:
+            return jsonify({"lyrics": res.json()["candidates"][0]["content"]["parts"][0]["text"]})
             
-        return jsonify({"title": title, "content": content})
+        # Fallback qua Groq nếu Gemini hết quota
+        if GROQ_API_KEY:
+            g_res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}]},
+                timeout=30
+            )
+            if g_res.status_code == 200:
+                return jsonify({"lyrics": g_res.json()["choices"][0]["message"]["content"]})
+                
+        return jsonify({"error": "Máy chủ đang bận, vui lòng thử lại sau nhé."}), 500
     except Exception as e:
-        return jsonify({"error": f"Lỗi cào web: {str(e)}"}), 500
+        return jsonify({"error": f"Lỗi tìm kiếm: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
