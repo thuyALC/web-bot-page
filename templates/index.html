@@ -3,230 +3,370 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI WORKSPACE 3D - Khám Phá Không Gian Số</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <title>AI Workspace - Workspace Tối Ưu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Dải màu rực rỡ sống động */
-      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-      --color-primary: #3b82f6; /* Xanh dương */
-      --color-secondary: #8e44ad; /* Tím */
-      --color-accent: #e67e22; /* Cam rực */
-      --text-main: #1e293b;
-      --text-sub: #64748b;
-      --panel-bg: rgba(255, 255, 255, 0.7); /* Kính mờ trắng */
-      --panel-bg-dark: rgba(30, 41, 59, 0.85); /* Kính mờ tối */
+      /* Bảng màu SaaS Tối Ưu, Sắc Nét */
+      --bg-body: #111827; /* Xám đen sâu */
+      --bg-card: #1f2937; /* Xám đen nhẹ */
+      --text-main: #f9fafb; /* Trắng xám */
+      --text-muted: #94a3b8; /* Xám xanh nhạt */
+      --border-color: rgba(255, 255, 255, 0.08); /* Viền mờ */
       
-      --shadow-3d: 0 15px 35px rgba(31, 38, 135, 0.1);
-      --shadow-hover-3d: 0 25px 45px rgba(31, 38, 135, 0.2);
+      --primary: #2563eb; /* Xanh dương SaaS */
+      --primary-hover: #1d4ed8;
+      
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      --orange: #f97316;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
 
-    * { box-sizing: border-box; transition: all 0.3s ease-in-out; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     
-    body { 
-      margin: 0; min-height: 100vh; background: var(--bg-gradient); 
-      font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-      color: var(--text-main); line-height: 1.6;
-      perspective: 1000px; /* Cần có perspective để tạo không gian 3D */
-    }
-
-    /* --- THANH ĐIỀU HƯỚNG GLASSMORPHISM --- */
-    nav {
-      position: sticky; top: 0; z-index: 1000;
-      background: rgba(255, 255, 255, 0.6); 
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 15px 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-    }
-    .logo { font-size: 20px; font-weight: 800; color: var(--color-primary); }
-    .nav-links { display: flex; gap: 25px; list-style: none; margin: 0; padding: 0; }
-    .nav-links li a { text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 15px; position: relative; }
-    .nav-links li a:hover { color: var(--color-primary); }
-    /* Hiệu ứng 3D Transform nhẹ cho Links khi Hover */
-    .nav-links li a:hover { transform: translateZ(5px); }
-
-    /* --- PHẦN HERO SECTION CHÍNH --- */
-    .hero-section {
-      text-align: center; padding: 120px 20px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
+    body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; padding: 32px 16px; display: flex; justify-content: center; min-height: 100vh;}
     
-    /* Văn bản rực rỡ với Gradient */
-    .hero-title { 
-      font-size: 52px; font-weight: 800; letter-spacing: -1px; margin: 0;
-      background: linear-gradient(135deg, #1abc9c 0%, #3498db 50%, #8e44ad 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      animation: textPulse 4s infinite;
-    }
+    main { width: 100%; max-width: 1024px; display: flex; flex-direction: column; gap: 24px; }
+
+    .header-title { text-align: center; margin-bottom: 8px; }
+    .header-title h1 { font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em; }
+    .header-title p { color: var(--text-muted); font-size: 15px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+
+    /* Panel Minimalist, Chuyên nghiệp */
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s; }
+    .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
     
-    .hero-sub { color: var(--text-sub); font-size: 17px; margin-top: 15px; max-width: 600px; }
-
-    /* Nút CTA nổi 3D Rực rỡ */
-    .hero-btn {
-      margin-top: 40px; display: inline-flex; align-items: center; justify-content: center;
-      padding: 14px 28px; font-size: 15px; font-weight: 700; border-radius: 999px;
-      background: linear-gradient(to right, #3498db, #8e44ad, #e67e22);
-      color: white; text-decoration: none;
-      box-shadow: 0 5px 15px rgba(142, 68, 173, 0.4);
-      transform-style: preserve-3d; transition: all 0.2s;
-    }
-    .hero-btn:hover {
-      box-shadow: 0 10px 25px rgba(142, 68, 173, 0.6);
-      transform: translateY(-3px) translateZ(15px); /* Nổi 3D và nổi lên */
-    }
-    .hero-btn:active { transform: translateY(1px); }
-
-    /* KHỐI 3D LƠ LỬNG TRUNG TÂM */
-    .cube-container { margin-top: 80px; transform-style: preserve-3d; animation: cubeRotate 20s infinite linear; }
-    .cube-3d { 
-      font-size: 50px; color: rgba(255,255,255,0.8);
-      display: flex; align-items: center; justify-content: center;
-      width: 100px; height: 100px; background: rgba(59, 130, 246, 0.6);
-      backdrop-filter: blur(5px); border-radius: 12px;
-      border: 2px solid rgba(255,255,255,0.4);
-      box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
-    }
-    .cube-3d::after {
-      content: 'AI'; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 32px;
-      position: absolute; color: white;
-    }
-
-    /* --- PHẦN TÍNH NĂNG (FEATURE CARDS 3D) --- */
-    .features { padding: 80px 20px; display: flex; justify-content: center; }
-    .grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      width: 100%; max-width: 1000px; gap: 30px;
-    }
+    .card-header { display: flex; align-items: center; margin-bottom: 16px; gap: 8px; }
+    .card-header h2 { font-size: 18px; font-weight: 600; color: #ffffff; }
     
-    /* Card Kính mờ với Hiệu ứng Xoay 3D Hover mạnh mẽ */
-    .card {
-      background: var(--panel-bg); border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 18px; padding: 25px; text-align: center;
-      box-shadow: var(--shadow-3d); transition: all 0.4s ease-out;
-      transform-style: preserve-3d; cursor: pointer;
-    }
+    textarea, input[type="text"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #2c3e50; color: #ffffff; transition: all 0.2s; outline: none; margin-bottom: 12px; }
+    textarea:focus, input[type="text"]:focus { border-color: var(--primary); background: #1f2937; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+    textarea { min-height: 80px; resize: vertical; }
+
+    .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
+    button:active { transform: scale(0.98); }
     
-    /* Khi Hover: Card "vỡ" ra ngoài và xoay 3D mạnh */
-    .card:hover {
-      box-shadow: var(--shadow-hover-3d);
-      transform: translateY(-8px) rotateX(12deg) rotateY(-10deg) translateZ(30px);
-    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #334155; color: #e2e8f0; border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background: #475569; }
+
+    label.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; display: none; }
+    .badge.success { background: #059669; color: #ffffff; display: inline-flex; }
+    .badge.error { background: #dc2626; color: #ffffff; display: inline-flex; }
+    .badge.warning { background: #d97706; color: #ffffff; display: inline-flex; }
+
+    pre.result-box { background: #111827; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; border: 1px solid var(--border-color);}
     
-    .card-emoji { font-size: 36px; margin-bottom: 12px; }
-    .card h3 { font-size: 18px; margin: 0 0 10px 0; color: var(--text-main); }
-    .card p { font-size: 14px; color: var(--text-sub); margin: 0; }
+    .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.2); border-left: 4px solid var(--primary); font-size: 14px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); }
 
-    /* Phân loại màu cho Card chuyên nghiệp */
-    .card.blue { border-top: 4px solid #3498db; }
-    .card.purple { border-top: 4px solid #8e44ad; }
-    .card.orange { border-top: 4px solid #e67e22; }
-    .card.green { border-top: 4px solid #1abc9c; }
+    /* Game Styling */
+    .riddle-display { font-size: 45px; text-align: center; padding: 24px 10px; margin-bottom: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; letter-spacing: 8px; border: 1px dashed var(--border-color); }
+    
+    .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); gap: 1px; background: #334155; width: max-content; padding: 1px; margin: 0 auto; }
+    .caro-cell { width: 36px; height: 36px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; cursor: pointer; user-select: none; transition: background 0.1s; }
+    .caro-cell:hover { background: #1f2937; }
+    .win-cell { background: #facc15 !important; color: #0f172a !important; }
 
-    /* --- PHẦN KÊU GỌI HÀNH ĐỘNG CUỐI (CTA SECTION) --- */
-    .cta-section {
-      text-align: center; padding: 80px 20px;
-      background: var(--panel-bg-dark); color: #ecf0f1; border-radius: 20px;
-      width: min(900px, 90%); margin: 40px auto;
-      transform-style: preserve-3d; transition: all 0.4s ease-in-out;
-    }
-    .cta-section:hover {
-        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        transform: translateZ(20px) rotateX(2deg);
-    }
-    .cta-section h2 { font-size: 30px; margin: 0 0 10px 0; color: white; }
-    .cta-section p { font-size: 16px; margin: 0 0 30px 0; opacity: 0.8; }
-
-    /* --- CHÂN TRANG FOOTER --- */
-    footer {
-      text-align: center; padding: 30px 20px;
-      font-size: 13px; color: var(--text-sub);
-      border-top: 1px solid var(--border); margin-top: 40px;
-    }
-
-    /* KEYFRAMES ANIMATION */
-    @keyframes textPulse { 0% { opacity: 1; } 50% { opacity: 0.9; } 100% { opacity: 1; } }
-    @keyframes cubeRotate { 
-      0% { transform: rotateY(0deg) rotateX(0deg); } 
-      100% { transform: rotateY(360deg) rotateX(180deg); } 
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-      .header-title { font-size: 38px; }
-      nav { padding: 15px 20px; }
-      .nav-links { gap: 15px; font-size: 13px; }
-      .grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
   </style>
 </head>
 <body>
-
-  <nav>
-    <div class="logo">AI WORKSPACE 3D</div>
-    <ul class="nav-links">
-      <li><a href="#">Trang chủ</a></li>
-      <li><a href="#features">Tính năng</a></li>
-      <li><a href="#">Game 3D</a></li>
-      <li><a href="#">Chat AI</a></li>
-    </ul>
-  </nav>
-
-  <section class="hero-section">
-    <h1 class="hero-title">KHÁM PHÁ KHÔNG GIAN AI 3D</h1>
-    <p class="hero-sub">Tích hợp Trí tuệ Nhân tạo thông minh, Minigame đa năng và công cụ sáng tạo trong một giao diện 3D sống động.</p>
-    
-    <a href="#" class="hero-btn">GỬI YÊU CẦU NGAY</a>
-
-    <div class="cube-container">
-      <div class="cube-3d"></div>
+  <main>
+    <div class="header-title">
+      <h1>AI Workspace</h1>
+      <p>Workspace Tối Ưu Hóa & Tích hợp Giải Trí</p>
     </div>
-  </section>
 
-  <section class="features" id="features">
     <div class="grid">
-      <div class="card blue">
-        <div class="card-emoji">💬</div>
-        <h3>Chat AI Thông Minh</h3>
-        <p>Phản hồi nhanh chóng, hỗ trợ nối mạng và giải đáp đa dạng câu hỏi với bộ não Gemini & Groq.</p>
+      <div class="card" style="border-top: 3px solid var(--color-chat);">
+        <div class="card-header">
+          <span style="font-size:18px;">💬</span><h2>Chat AI (Gemini + Groq)</h2>
+        </div>
+        <textarea id="message" placeholder="Hỏi tôi bất cứ điều gì..."></textarea>
+        <div class="button-group">
+          <button id="send" class="btn-primary" style="background: var(--color-chat);">Gửi yêu cầu</button>
+          <button id="clear" class="btn-secondary">Làm mới</button>
+          <label class="checkbox-label"><input id="search" type="checkbox" checked> Chế độ Online</label>
+        </div>
       </div>
-      <div class="card purple">
-        <div class="card-emoji">🎶</div>
-        <h3>Tra cứu Lyrics</h3>
-        <p>Tìm lời bài hát karaoke chuyên nghiệp dựa trên tên hoặc trích đoạn câu hát bất kỳ.</p>
-      </div>
-      <div class="card green">
-        <div class="card-emoji">👻</div>
-        <h3>Sáng tác Truyện Ma</h3>
-        <p>Cung cấp chủ đề và AI sẽ viết nên một câu chuyện ma rùng rợn, bất ngờ dành cho bạn.</p>
-      </div>
-      <div class="card orange">
-        <div class="card-emoji">🧩</div>
-        <h3>Đuổi Hình Bắt Chữ</h3>
-        <p>Giải trí Local với minigame kinh điển, đoán từ dựa trên các Emoji vui nhộn.</p>
-      </div>
-      <div class="card blue">
-        <div class="card-emoji">⭕</div>
-        <h3>Cờ Caro 25x25</h3>
-        <p>Đấu Local trên bàn cờ lớn, bẫy Bot thông minh với luật chặn hai đầu chuyên nghiệp.</p>
-      </div>
-      <div class="card gray" style="background: rgba(100,116,139,0.1);">
-        <div class="card-emoji">⚙️</div>
-        <h3>Cấu hình Hệ thống</h3>
-        <p>Tùy chỉnh phiên làm việc, quản lý trí nhớ và cấu hình kết nối local.</p>
+
+      <div class="card" style="border-top: 3px solid var(--color-lyric);">
+        <div class="card-header">
+          <span style="font-size:18px;">🎵</span><h2>Tìm Lời Bài Hát (Lyric)</h2>
+        </div>
+        <input type="text" id="song-query" placeholder="Nhập tên bài hoặc 1 câu hát...">
+        <div class="button-group">
+          <button id="btn-lyric" class="btn-primary" style="background: var(--color-lyric);">Tìm Lyric</button>
+        </div>
+        <div id="lyric-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
+        <div id="lyric-output" class="output-box" style="border-left-color: var(--color-lyric);"></div>
       </div>
     </div>
-  </section>
 
-  <section class="cta-section">
-    <h2>Trải nghiệm sự khác biệt!</h2>
-    <p>Workspace số hóa, mượt mà và đầy cảm hứng sáng tạo đang chờ đón bạn.</p>
-    <a href="#" class="hero-btn" style="box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);">BẮT ĐẦU NGAY</a>
-  </section>
+    <div class="card" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-md);">
+      <div style="padding: 10px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 15px; margin: 0; border:none; padding:0;">Kết quả truy vấn</h2>
+        <div id="chat-status" class="badge"></div>
+      </div>
+      <pre id="result" class="result-box">Hệ thống sẵn sàng.</pre>
+    </div>
 
-  <footer>
-    © 2026 AI Workspace 3D. Chuyên Nghiệp. Đẹp. Mượt Mà.
-  </footer>
+    <div class="grid">
+      <div class="card" style="border-top: 3px solid var(--color-game);">
+        <div class="card-header">
+          <span style="font-size:18px;">🧩</span><h2>Đuổi Hình Bắt Chữ (Local)</h2>
+        </div>
+        <div id="game-display" class="riddle-display">❓❔❓</div>
+        <div class="row" style="margin-bottom:12px;">
+          <input type="text" id="game-guess" placeholder="Đáp án của bạn..." style="margin-bottom: 0; flex: 1;">
+          <button id="btn-guess" class="btn-primary" style="background: var(--color-game);">Đoán</button>
+        </div>
+        <div class="button-group">
+          <button id="btn-new-riddle" class="btn-secondary" style="flex: 1;">Câu hỏi mới</button>
+          <button id="btn-show-answer" class="btn-secondary" style="flex: 1; border-color: var(--danger); color: var(--danger);">Xem đáp án</button>
+        </div>
+        <div style="text-align: center; margin-top: 16px;">
+            <div id="game-status" class="badge success" style="font-size:13px; padding: 4px 14px;">Sẵn sàng!</div>
+        </div>
+      </div>
 
+      <div class="card" style="border-top: 3px solid var(--color-game);">
+        <div class="card-header" style="justify-content: space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">⭕</span><h2>Cờ Caro (25x25)</h2>
+            </div>
+            <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px; padding: 4px 14px;">Bạn đi trước (X)</div>
+        </div>
+        <div class="button-group" style="justify-content: center;">
+          <button id="btn-caro-reset" class="btn-secondary">Đầu hàng / Ván mới</button>
+        </div>
+        <div class="caro-wrapper">
+            <div class="caro-grid" id="caro-board"></div>
+        </div>
+      </div>
+    </div>
+    
+  </main>
+
+  <script>
+    // Hàm gọi API dùng chung
+    async function apiCall(endpoint, payload) {
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lỗi máy chủ nội bộ.");
+      return data;
+    }
+    
+    function updateBadge(id, text, type) {
+        const badge = document.getElementById(id);
+        if(!badge) return;
+        badge.textContent = text;
+        badge.className = `badge ${type}`;
+        badge.style.display = 'inline-flex';
+    }
+
+    // --- MODULE CHAT AI ---
+    (() => {
+        const sendBtn = document.getElementById("send");
+        const clearBtn = document.getElementById("clear");
+        const input = document.getElementById("message");
+        const result = document.getElementById("result");
+        
+        if(sendBtn) sendBtn.onclick = async () => {
+            const msg = input?.value.trim();
+            if (!msg) return;
+            updateBadge("chat-status", "⏳ Đang gọi AI...", "warning");
+            result.textContent = "Hệ thống đang xử lý...";
+            try {
+                const search = document.getElementById("search")?.checked;
+                const data = await apiCall("/api/chat", { message: msg, search });
+                updateBadge("chat-status", data.search_status, "success");
+                result.textContent = data.reply;
+            } catch (err) { 
+                updateBadge("chat-status", "Mất kết nối", "error");
+                result.textContent = err.message; 
+            }
+        };
+
+        if(clearBtn) clearBtn.onclick = async () => {
+            await apiCall("/api/clear", {});
+            input.value = "";
+            document.getElementById("chat-status").style.display = "none";
+            result.textContent = "Phiên trò chuyện đã được làm mới.";
+        };
+    })();
+
+    // --- MODULE TÌM LYRIC ---
+    (() => {
+        const searchBtn = document.getElementById("btn-lyric");
+        const input = document.getElementById("song-query");
+        const output = document.getElementById("lyric-output");
+        
+        if(searchBtn) searchBtn.onclick = async () => {
+            const query = input?.value.trim();
+            if (!query) { updateBadge("lyric-status", "Vui lòng nhập từ khóa.", "error"); return; }
+            updateBadge("lyric-status", "Đang tra cứu...", "warning");
+            output.style.display = "none";
+            try {
+                const data = await apiCall("/api/get_lyrics", { query });
+                output.textContent = data.lyrics; 
+                output.style.display = "block";
+                updateBadge("lyric-status", "Hoàn tất", "success");
+            } catch (err) { 
+                updateBadge("lyric-status", err.message, "error");
+            }
+        };
+    })();
+
+    // --- MODULE ĐUỔI HÌNH BẮT CHỮ ---
+    (() => {
+        const riddleDisplay = document.getElementById("game-display");
+        const guessInput = document.getElementById("game-guess");
+        
+        if(document.getElementById("btn-new-riddle")) document.getElementById("btn-new-riddle").onclick = async () => {
+            if(riddleDisplay) riddleDisplay.textContent = "⏳";
+            if(guessInput) guessInput.value = "";
+            try {
+                const data = await apiCall("/api/game/riddle", {});
+                if(riddleDisplay) riddleDisplay.textContent = data.emoji;
+                updateBadge("game-status", "Câu hỏi mới!", "success");
+            } catch (err) { updateBadge("game-status", err.message, "error"); }
+        };
+
+        if(document.getElementById("btn-guess")) document.getElementById("btn-guess").onclick = async () => {
+            const guess = guessInput?.value.trim();
+            if (!guess) return;
+            try {
+                const data = await apiCall("/api/game/guess", { guess });
+                updateBadge("game-status", data.message, data.correct ? "success" : "error");
+            } catch (err) { updateBadge("game-status", err.message, "error"); }
+        };
+
+        if(document.getElementById("btn-show-answer")) document.getElementById("btn-show-answer").onclick = async () => {
+            try {
+                const data = await apiCall("/api/game/answer", {});
+                updateBadge("game-status", data.message, "error");
+                if(riddleDisplay) riddleDisplay.textContent = "🙈"; 
+            } catch (err) { updateBadge("game-status", err.message, "error"); }
+        };
+
+        guessInput?.addEventListener("keypress", (e) => { 
+            if (e.key === "Enter") document.getElementById("btn-guess")?.click(); 
+        });
+    })();
+
+    // --- MODULE CỜ CARO 25x25 ---
+    (() => {
+        const SIZE = 25;
+        let caroState = [];
+        let caroActive = true;
+        const boardEl = document.getElementById("caro-board");
+        const statusEl = document.getElementById("caro-status");
+
+        function initCaroState() { caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill('')); }
+
+        function renderCaro() {
+            if(!boardEl) return;
+            boardEl.innerHTML = "";
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const div = document.createElement("div");
+                    div.className = "caro-cell";
+                    div.id = `cell-${r}-${c}`;
+                    if (caroState[r][c] !== "") {
+                        div.textContent = caroState[r][c];
+                        div.style.color = caroState[r][c] === 'X' ? '#2563eb' : '#ef4444';
+                    }
+                    div.addEventListener('click', () => handleCaroClick(r, c));
+                    boardEl.appendChild(div);
+                }
+            }
+        }
+
+        function updateSingleCell(r, c) {
+            const cell = document.getElementById(`cell-${r}-${c}`);
+            if(cell) {
+                cell.textContent = caroState[r][c];
+                cell.style.color = caroState[r][c] === 'X' ? '#2563eb' : '#ef4444';
+            }
+        }
+
+        function checkWin(r, c, p) {
+            const dirs = [[1, 0],[0, 1],[1, 1],[1, -1]]; 
+            for (let [dr, dc] of dirs) {
+                let count = 1, cells = [[r, c]];
+                let nr = r + dr, nc = c + dc;
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; cells.push([nr,nc]); nr+=dr; nc+=dc; }
+                nr = r - dr; nc = c - dc;
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; cells.push([nr,nc]); nr-=dr; nc-=dc; }
+                if(count >= 5) return cells;
+            }
+            return null;
+        }
+
+        function botMove() {
+            if(!caroActive) return;
+            let move = {r: 12, c: 12};
+            if(caroState[12][12]!=='') {
+                for(let r=0; r<SIZE; r++) {
+                    for(let c=0; c<SIZE; c++) {
+                        if(caroState[r][c]==='') { move = {r, c}; break; }
+                    }
+                    if(caroState[move.r][move.c]==='') break;
+                }
+            }
+            if(move) {
+                caroState[move.r][move.c] = 'O';
+                updateSingleCell(move.r, move.c);
+                const win = checkWin(move.r, move.c, 'O');
+                if(win) {
+                    win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
+                    updateBadge("caro-status", "Máy thắng rồi kkk 😆", "error");
+                    caroActive = false;
+                } else updateBadge("caro-status", "Đến lượt bạn (X)", "success");
+            }
+        }
+
+        function handleCaroClick(r, c) {
+            if(caroState[r][c] !== '' || !caroActive) return;
+            caroState[r][c] = 'X';
+            updateSingleCell(r, c);
+            const win = checkWin(r, c, 'X');
+            if(win) {
+                win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
+                updateBadge("caro-status", "Bạn thắng rồi! Quá tuyệt 🎉", "success");
+                caroActive = false;
+            } else {
+                updateBadge("caro-status", "Hệ thống đang nghĩ...", "warning");
+                setTimeout(botMove, 50); 
+            }
+        }
+
+        if(document.getElementById("btn-caro-reset")) document.getElementById("btn-caro-reset").onclick = () => {
+            initCaroState(); caroActive = true;
+            updateBadge("caro-status", "Bạn đi trước (X)", "success");
+            renderCaro();
+            const wrapper = document.querySelector('.caro-wrapper');
+            wrapper.scrollLeft = wrapper.scrollWidth / 2 - wrapper.clientWidth / 2;
+            wrapper.scrollTop = wrapper.scrollHeight / 2 - wrapper.clientHeight / 2;
+        };
+
+        // Khởi tạo caro ban đầu
+        initCaroState(); renderCaro();
+    })();
+  </script>
 </body>
 </html>
