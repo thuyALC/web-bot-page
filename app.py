@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import requests
 from flask import Flask, jsonify, render_template, request
@@ -42,15 +42,20 @@ HERMES_TOOL = {
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def now_str() -> str:
-    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    gmt7 = timezone(timedelta(hours=7))
+    return datetime.now(tz=gmt7).strftime("%d/%m/%Y %H:%M:%S (GMT+7)")
 
 def system_prompt_vi() -> str:
     return (
-        "Bạn là trợ lý tiếng Việt thông minh. Trả lời đầy đủ, chi tiết, có cấu trúc rõ ràng. "
-        "Giải thích kỹ, dùng ví dụ cụ thể khi cần, không bỏ sót thông tin quan trọng. "
-        f"Thời gian hiện tại: {now_str()}. "
-        "Khi cần tin tức / dữ liệu mới hãy gọi tool tavily_search. "
-        "Câu hỏi kiến thức chung thì tự trả lời, không cần gọi tool."
+        "Bạn là trợ lý AI thông minh, trả lời bằng tiếng Việt. "
+        f"Thời gian hiện tại tại Việt Nam: {now_str()}. "
+        "QUAN TRỌNG – Luật trả lời:\n"
+        "1. Trả lời TRỰC TIẾP vào câu hỏi, KHÔNG nói vòng vo, KHÔNG nhắc lại câu hỏi.\n"
+        "2. Câu trả lời ĐẦY ĐỦ, CÓ CHI TIẾT, có ví dụ cụ thể nếu cần.\n"
+        "3. Nếu hỏi về thời gian / ngày giờ: đọc ngay từ thông tin ở trên, trả lời chính xác.\n"
+        "4. Nếu hỏi tin tức / sự kiện mới / giá cả: gọi tool tavily_search.\n"
+        "5. KHÔNG thêm câu thừa kiểu 'Nếu bạn cần thêm thông tin...', 'Hy vọng câu trả lời...'.\n"
+        "6. Trình bày rõ ràng, dùng gạch đầu dòng hoặc số thứ tự khi liệt kê."
     )
 
 def extract_text_openai_style(data: dict) -> str:
