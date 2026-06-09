@@ -7,30 +7,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Bảng màu SaaS Tối Ưu, Sắc Nét */
-      --bg-body: #111827; /* Xám đen sâu */
-      --bg-card: #1f2937; /* Xám đen nhẹ */
-      --text-main: #f9fafb; /* Trắng xám */
-      --text-muted: #94a3b8; /* Xám xanh nhạt */
-      --border-color: rgba(255, 255, 255, 0.08); /* Viền mờ */
-      
-      --primary: #2563eb; /* Xanh dương SaaS */
+      --bg-body: #111827; 
+      --bg-card: #1f2937; 
+      --text-main: #f9fafb; 
+      --text-muted: #94a3b8; 
+      --border-color: rgba(255, 255, 255, 0.08); 
+      --primary: #2563eb; 
       --primary-hover: #1d4ed8;
-      
       --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
       --purple: #8b5cf6;
-      --orange: #f97316;
-
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    
     body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; padding: 32px 16px; display: flex; justify-content: center; min-height: 100vh;}
-    
     main { width: 100%; max-width: 1024px; display: flex; flex-direction: column; gap: 24px; }
 
     .header-title { text-align: center; margin-bottom: 8px; }
@@ -38,8 +31,6 @@
     .header-title p { color: var(--text-muted); font-size: 15px; }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
-
-    /* Panel Minimalist, Chuyên nghiệp */
     .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s; }
     .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
     
@@ -68,10 +59,8 @@
     .badge.warning { background: #d97706; color: #ffffff; display: inline-flex; }
 
     pre.result-box { background: #111827; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; border: 1px solid var(--border-color);}
-    
     .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.2); border-left: 4px solid var(--primary); font-size: 14px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); }
 
-    /* Game Styling */
     .riddle-display { font-size: 45px; text-align: center; padding: 24px 10px; margin-bottom: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; letter-spacing: 8px; border: 1px dashed var(--border-color); }
     
     .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
@@ -91,28 +80,24 @@
     </div>
 
     <div class="grid">
-      <div class="card" style="border-top: 3px solid var(--color-chat);">
-        <div class="card-header">
-          <span style="font-size:18px;">💬</span><h2>Chat AI (Gemini + Groq)</h2>
-        </div>
+      <div class="card" style="border-top: 3px solid #10b981;">
+        <div class="card-header"><span style="font-size:18px;">💬</span><h2>Chat AI (Gemini + Groq)</h2></div>
         <textarea id="message" placeholder="Hỏi tôi bất cứ điều gì..."></textarea>
         <div class="button-group">
-          <button id="send" class="btn-primary" style="background: var(--color-chat);">Gửi yêu cầu</button>
+          <button id="send" class="btn-primary" style="background: #10b981;">Gửi yêu cầu</button>
           <button id="clear" class="btn-secondary">Làm mới</button>
           <label class="checkbox-label"><input id="search" type="checkbox" checked> Chế độ Online</label>
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid var(--color-lyric);">
-        <div class="card-header">
-          <span style="font-size:18px;">🎵</span><h2>Tìm Lời Bài Hát (Lyric)</h2>
-        </div>
+      <div class="card" style="border-top: 3px solid #8b5cf6;">
+        <div class="card-header"><span style="font-size:18px;">🎵</span><h2>Tìm Lời Bài Hát (Lyric)</h2></div>
         <input type="text" id="song-query" placeholder="Nhập tên bài hoặc 1 câu hát...">
         <div class="button-group">
-          <button id="btn-lyric" class="btn-primary" style="background: var(--color-lyric);">Tìm Lyric</button>
+          <button id="btn-lyric" class="btn-primary" style="background: #8b5cf6;">Tìm Lyric</button>
         </div>
         <div id="lyric-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
-        <div id="lyric-output" class="output-box" style="border-left-color: var(--color-lyric);"></div>
+        <div id="lyric-output" class="output-box" style="border-left-color: #8b5cf6;"></div>
       </div>
     </div>
 
@@ -125,14 +110,12 @@
     </div>
 
     <div class="grid">
-      <div class="card" style="border-top: 3px solid var(--color-game);">
-        <div class="card-header">
-          <span style="font-size:18px;">🧩</span><h2>Đuổi Hình Bắt Chữ (Local)</h2>
-        </div>
+      <div class="card" style="border-top: 3px solid #f59e0b;">
+        <div class="card-header"><span style="font-size:18px;">🧩</span><h2>Đuổi Hình Bắt Chữ (Local)</h2></div>
         <div id="game-display" class="riddle-display">❓❔❓</div>
-        <div class="row" style="margin-bottom:12px;">
+        <div class="row" style="display:flex; gap:10px; margin-bottom:12px;">
           <input type="text" id="game-guess" placeholder="Đáp án của bạn..." style="margin-bottom: 0; flex: 1;">
-          <button id="btn-guess" class="btn-primary" style="background: var(--color-game);">Đoán</button>
+          <button id="btn-guess" class="btn-primary" style="background: #f59e0b;">Đoán</button>
         </div>
         <div class="button-group">
           <button id="btn-new-riddle" class="btn-secondary" style="flex: 1;">Câu hỏi mới</button>
@@ -143,10 +126,10 @@
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid var(--color-game);">
+      <div class="card" style="border-top: 3px solid #ef4444;">
         <div class="card-header" style="justify-content: space-between;">
             <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">⭕</span><h2>Cờ Caro (25x25)</h2>
+                <span style="font-size:18px;">⭕</span><h2>Cờ Caro (Bot Khó)</h2>
             </div>
             <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px; padding: 4px 14px;">Bạn đi trước (X)</div>
         </div>
@@ -158,11 +141,9 @@
         </div>
       </div>
     </div>
-    
   </main>
 
   <script>
-    // Hàm gọi API dùng chung
     async function apiCall(endpoint, payload) {
       const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -268,13 +249,12 @@
         });
     })();
 
-    // --- MODULE CỜ CARO 25x25 ---
+    // --- MODULE CỜ CARO (AI NÂNG CẤP) ---
     (() => {
         const SIZE = 25;
         let caroState = [];
         let caroActive = true;
         const boardEl = document.getElementById("caro-board");
-        const statusEl = document.getElementById("caro-status");
 
         function initCaroState() { caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill('')); }
 
@@ -317,24 +297,86 @@
             return null;
         }
 
-        function botMove() {
-            if(!caroActive) return;
-            let move = {r: 12, c: 12};
-            if(caroState[12][12]!=='') {
-                for(let r=0; r<SIZE; r++) {
-                    for(let c=0; c<SIZE; c++) {
-                        if(caroState[r][c]==='') { move = {r, c}; break; }
-                    }
-                    if(caroState[move.r][move.c]==='') break;
+        function hasNeighbor(r, c) {
+            for (let i = -2; i <= 2; i++) {
+                for (let j = -2; j <= 2; j++) {
+                    if (r+i >= 0 && r+i < SIZE && c+j >= 0 && c+j < SIZE && caroState[r+i][c+j] !== '') return true;
                 }
             }
-            if(move) {
+            return false;
+        }
+
+        // AI Nâng cấp: Đánh giá mảng liên tục, biết chặn 2 đầu, lấp lỗ hổng
+        function getScore(r, c, player) {
+            const opp = player === 'X' ? 'O' : 'X';
+            let score = 0;
+            const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+            
+            for (let [dr, dc] of dirs) {
+                let consecutive = 1;
+                let blocks = 0;
+                
+                let i = 1;
+                while(r + i*dr >= 0 && r + i*dr < SIZE && c + i*dc >= 0 && c + i*dc < SIZE && caroState[r + i*dr][c + i*dc] === player) {
+                    consecutive++; i++;
+                }
+                if(r + i*dr < 0 || r + i*dr >= SIZE || c + i*dc < 0 || c + i*dc >= SIZE || caroState[r + i*dr][c + i*dc] === opp) blocks++;
+                
+                let j = 1;
+                while(r - j*dr >= 0 && r - j*dr < SIZE && c - j*dc >= 0 && c - j*dc < SIZE && caroState[r - j*dr][c - j*dc] === player) {
+                    consecutive++; j++;
+                }
+                if(r - j*dr < 0 || r - j*dr >= SIZE || c - j*dc < 0 || c - j*dc >= SIZE || caroState[r - j*dr][c - j*dc] === opp) blocks++;
+
+                if(blocks === 2 && consecutive < 5) continue; // Khóa 2 đầu thì bỏ qua
+
+                if(consecutive >= 5) score += 2000000;
+                else if(consecutive === 4) score += (blocks === 0) ? 500000 : 100000;
+                else if(consecutive === 3) score += (blocks === 0) ? 50000 : 10000;
+                else if(consecutive === 2) score += (blocks === 0) ? 5000 : 500;
+                else if(consecutive === 1) score += (blocks === 0) ? 50 : 5;
+            }
+            return score;
+        }
+
+        function botMove() {
+            if(!caroActive) return;
+            let bestScore = -1;
+            let moves = [];
+            
+            if(caroState[12][12]==='') {
+                moves = [{r: 12, c: 12}];
+            } else {
+                for(let r=0; r<SIZE; r++) {
+                    for(let c=0; c<SIZE; c++) {
+                        if(caroState[r][c]==='') {
+                            if(!hasNeighbor(r,c)) continue;
+                            
+                            let attack = getScore(r, c, 'O');
+                            let defense = getScore(r, c, 'X');
+                            
+                            // Phân bổ tư duy: Thủ chặt hơn một chút nhưng nếu win thì phải dứt điểm
+                            let total = attack + defense * 1.2; 
+                            
+                            if(total > bestScore) {
+                                bestScore = total;
+                                moves = [{r, c}];
+                            } else if (total === bestScore) {
+                                moves.push({r, c}); // Thêm vào list nếu điểm bằng nhau để random chọn nước đi
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if(moves.length > 0) {
+                let move = moves[Math.floor(Math.random() * moves.length)];
                 caroState[move.r][move.c] = 'O';
                 updateSingleCell(move.r, move.c);
                 const win = checkWin(move.r, move.c, 'O');
                 if(win) {
                     win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
-                    updateBadge("caro-status", "Máy thắng rồi kkk 😆", "error");
+                    updateBadge("caro-status", "Bot: Khóc đi cưng 😆", "error");
                     caroActive = false;
                 } else updateBadge("caro-status", "Đến lượt bạn (X)", "success");
             }
@@ -347,11 +389,11 @@
             const win = checkWin(r, c, 'X');
             if(win) {
                 win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
-                updateBadge("caro-status", "Bạn thắng rồi! Quá tuyệt 🎉", "success");
+                updateBadge("caro-status", "Bạn thắng rồi! Đỉnh 🎉", "success");
                 caroActive = false;
             } else {
-                updateBadge("caro-status", "Hệ thống đang nghĩ...", "warning");
-                setTimeout(botMove, 50); 
+                updateBadge("caro-status", "Bot đang tính nước cờ...", "warning");
+                setTimeout(botMove, 80); 
             }
         }
 
@@ -360,11 +402,12 @@
             updateBadge("caro-status", "Bạn đi trước (X)", "success");
             renderCaro();
             const wrapper = document.querySelector('.caro-wrapper');
-            wrapper.scrollLeft = wrapper.scrollWidth / 2 - wrapper.clientWidth / 2;
-            wrapper.scrollTop = wrapper.scrollHeight / 2 - wrapper.clientHeight / 2;
+            if(wrapper) {
+                wrapper.scrollLeft = wrapper.scrollWidth / 2 - wrapper.clientWidth / 2;
+                wrapper.scrollTop = wrapper.scrollHeight / 2 - wrapper.clientHeight / 2;
+            }
         };
 
-        // Khởi tạo caro ban đầu
         initCaroState(); renderCaro();
     })();
   </script>
