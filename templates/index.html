@@ -3,341 +3,230 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Workspace</title>
+  <title>AI WORKSPACE 3D - Khám Phá Không Gian Số</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; --text-muted: #64748b;
-      --border: #e2e8f0; --primary: #3b82f6; --primary-hover: #2563eb;
-      --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
+      /* Dải màu rực rỡ sống động */
+      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      --color-primary: #3b82f6; /* Xanh dương */
+      --color-secondary: #8e44ad; /* Tím */
+      --color-accent: #e67e22; /* Cam rực */
+      --text-main: #1e293b;
+      --text-sub: #64748b;
+      --panel-bg: rgba(255, 255, 255, 0.7); /* Kính mờ trắng */
+      --panel-bg-dark: rgba(30, 41, 59, 0.85); /* Kính mờ tối */
+      
+      --shadow-3d: 0 15px 35px rgba(31, 38, 135, 0.1);
+      --shadow-hover-3d: 0 25px 45px rgba(31, 38, 135, 0.2);
     }
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 20px; }
-    .header { text-align: center; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
-    .header h1 { margin: 0 0 5px 0; color: var(--primary); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .card h2 { margin: 0 0 15px 0; font-size: 18px; border-left: 4px solid var(--primary); padding-left: 10px; }
-    
-    input[type="text"], textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; margin-bottom: 10px; outline: none; }
-    input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-    textarea { resize: vertical; min-height: 80px; }
-    
-    .row { display: flex; gap: 10px; align-items: center; }
-    button { padding: 10px 16px; border: none; border-radius: 6px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    button:hover { background: var(--primary-hover); }
-    button.btn-gray { background: #64748b; } button.btn-gray:hover { background: #475569; }
-    button.btn-red { background: var(--danger); } button.btn-red:hover { background: #dc2626; }
-    
-    .status-text { font-size: 13px; font-weight: bold; margin-top: 5px; color: var(--warning); display: block; min-height: 18px; }
-    
-    .output-box { display: none; margin-top: 15px; padding: 15px; background: #f1f5f9; border-radius: 6px; font-size: 15px; line-height: 1.6; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border: 1px solid var(--border); }
-    pre.chat-result { background: #0f172a; color: #f8fafc; padding: 15px; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; font-family: monospace; font-size: 14px;}
-    
-    .game-emoji { font-size: 45px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; letter-spacing: 5px; border: 1px dashed var(--border); }
-    
-    /* Cờ Caro CSS cực kì an toàn */
-    .caro-wrapper { width: 100%; max-height: 400px; overflow: auto; border: 2px solid var(--border); border-radius: 6px; background: #e2e8f0; margin-top: 15px; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); grid-template-rows: repeat(25, 36px); gap: 1px; background: #cbd5e1; width: max-content; padding: 1px; margin: 0 auto; }
-    .caro-cell { width: 36px; height: 36px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; }
-    .caro-cell:hover { background: #f8fafc; }
-    .win-cell { background: #fef08a !important; color: #b45309 !important; }
 
-    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    * { box-sizing: border-box; transition: all 0.3s ease-in-out; }
+    
+    body { 
+      margin: 0; min-height: 100vh; background: var(--bg-gradient); 
+      font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+      color: var(--text-main); line-height: 1.6;
+      perspective: 1000px; /* Cần có perspective để tạo không gian 3D */
+    }
+
+    /* --- THANH ĐIỀU HƯỚNG GLASSMORPHISM --- */
+    nav {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(255, 255, 255, 0.6); 
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .logo { font-size: 20px; font-weight: 800; color: var(--color-primary); }
+    .nav-links { display: flex; gap: 25px; list-style: none; margin: 0; padding: 0; }
+    .nav-links li a { text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 15px; position: relative; }
+    .nav-links li a:hover { color: var(--color-primary); }
+    /* Hiệu ứng 3D Transform nhẹ cho Links khi Hover */
+    .nav-links li a:hover { transform: translateZ(5px); }
+
+    /* --- PHẦN HERO SECTION CHÍNH --- */
+    .hero-section {
+      text-align: center; padding: 120px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    
+    /* Văn bản rực rỡ với Gradient */
+    .hero-title { 
+      font-size: 52px; font-weight: 800; letter-spacing: -1px; margin: 0;
+      background: linear-gradient(135deg, #1abc9c 0%, #3498db 50%, #8e44ad 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: textPulse 4s infinite;
+    }
+    
+    .hero-sub { color: var(--text-sub); font-size: 17px; margin-top: 15px; max-width: 600px; }
+
+    /* Nút CTA nổi 3D Rực rỡ */
+    .hero-btn {
+      margin-top: 40px; display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 28px; font-size: 15px; font-weight: 700; border-radius: 999px;
+      background: linear-gradient(to right, #3498db, #8e44ad, #e67e22);
+      color: white; text-decoration: none;
+      box-shadow: 0 5px 15px rgba(142, 68, 173, 0.4);
+      transform-style: preserve-3d; transition: all 0.2s;
+    }
+    .hero-btn:hover {
+      box-shadow: 0 10px 25px rgba(142, 68, 173, 0.6);
+      transform: translateY(-3px) translateZ(15px); /* Nổi 3D và nổi lên */
+    }
+    .hero-btn:active { transform: translateY(1px); }
+
+    /* KHỐI 3D LƠ LỬNG TRUNG TÂM */
+    .cube-container { margin-top: 80px; transform-style: preserve-3d; animation: cubeRotate 20s infinite linear; }
+    .cube-3d { 
+      font-size: 50px; color: rgba(255,255,255,0.8);
+      display: flex; align-items: center; justify-content: center;
+      width: 100px; height: 100px; background: rgba(59, 130, 246, 0.6);
+      backdrop-filter: blur(5px); border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.4);
+      box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+    }
+    .cube-3d::after {
+      content: 'AI'; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 32px;
+      position: absolute; color: white;
+    }
+
+    /* --- PHẦN TÍNH NĂNG (FEATURE CARDS 3D) --- */
+    .features { padding: 80px 20px; display: flex; justify-content: center; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      width: 100%; max-width: 1000px; gap: 30px;
+    }
+    
+    /* Card Kính mờ với Hiệu ứng Xoay 3D Hover mạnh mẽ */
+    .card {
+      background: var(--panel-bg); border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 18px; padding: 25px; text-align: center;
+      box-shadow: var(--shadow-3d); transition: all 0.4s ease-out;
+      transform-style: preserve-3d; cursor: pointer;
+    }
+    
+    /* Khi Hover: Card "vỡ" ra ngoài và xoay 3D mạnh */
+    .card:hover {
+      box-shadow: var(--shadow-hover-3d);
+      transform: translateY(-8px) rotateX(12deg) rotateY(-10deg) translateZ(30px);
+    }
+    
+    .card-emoji { font-size: 36px; margin-bottom: 12px; }
+    .card h3 { font-size: 18px; margin: 0 0 10px 0; color: var(--text-main); }
+    .card p { font-size: 14px; color: var(--text-sub); margin: 0; }
+
+    /* Phân loại màu cho Card chuyên nghiệp */
+    .card.blue { border-top: 4px solid #3498db; }
+    .card.purple { border-top: 4px solid #8e44ad; }
+    .card.orange { border-top: 4px solid #e67e22; }
+    .card.green { border-top: 4px solid #1abc9c; }
+
+    /* --- PHẦN KÊU GỌI HÀNH ĐỘNG CUỐI (CTA SECTION) --- */
+    .cta-section {
+      text-align: center; padding: 80px 20px;
+      background: var(--panel-bg-dark); color: #ecf0f1; border-radius: 20px;
+      width: min(900px, 90%); margin: 40px auto;
+      transform-style: preserve-3d; transition: all 0.4s ease-in-out;
+    }
+    .cta-section:hover {
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        transform: translateZ(20px) rotateX(2deg);
+    }
+    .cta-section h2 { font-size: 30px; margin: 0 0 10px 0; color: white; }
+    .cta-section p { font-size: 16px; margin: 0 0 30px 0; opacity: 0.8; }
+
+    /* --- CHÂN TRANG FOOTER --- */
+    footer {
+      text-align: center; padding: 30px 20px;
+      font-size: 13px; color: var(--text-sub);
+      border-top: 1px solid var(--border); margin-top: 40px;
+    }
+
+    /* KEYFRAMES ANIMATION */
+    @keyframes textPulse { 0% { opacity: 1; } 50% { opacity: 0.9; } 100% { opacity: 1; } }
+    @keyframes cubeRotate { 
+      0% { transform: rotateY(0deg) rotateX(0deg); } 
+      100% { transform: rotateY(360deg) rotateX(180deg); } 
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .header-title { font-size: 38px; }
+      nav { padding: 15px 20px; }
+      .nav-links { gap: 15px; font-size: 13px; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>AI Workspace</h1>
-      <p style="margin:0; color: var(--text-muted);">ChatBot chống sập - Tìm Lyric - Giải trí Local</p>
-    </div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Chat AI (Gemini + Groq)</h2>
-        <textarea id="chat-input" placeholder="Nhập câu hỏi tại đây..."></textarea>
-        <div class="row">
-          <button id="btn-chat-send">Gửi</button>
-          <button id="btn-chat-clear" class="btn-gray">Xóa nhớ</button>
-          <label style="font-size: 14px; cursor: pointer;"><input type="checkbox" id="chat-search" checked> Nối mạng web</label>
-        </div>
-        <span id="chat-status" class="status-text" style="color: var(--success);"></span>
-      </div>
+  <nav>
+    <div class="logo">AI WORKSPACE 3D</div>
+    <ul class="nav-links">
+      <li><a href="#">Trang chủ</a></li>
+      <li><a href="#features">Tính năng</a></li>
+      <li><a href="#">Game 3D</a></li>
+      <li><a href="#">Chat AI</a></li>
+    </ul>
+  </nav>
 
-      <div class="card">
-        <h2>Tìm Lời Bài Hát</h2>
-        <input type="text" id="lyric-input" placeholder="Nhập tên bài hát hoặc câu hát...">
-        <button id="btn-lyric-search">Tìm kiếm</button>
-        <span id="lyric-status" class="status-text"></span>
-        <div id="lyric-output" class="output-box"></div>
-      </div>
-    </div>
-
-    <div class="card" style="padding: 0; overflow: hidden; border: none;">
-      <div style="background: #e2e8f0; padding: 10px 15px; font-weight: bold; font-size: 14px; border-bottom: 1px solid var(--border);">Kết quả Chat</div>
-      <pre id="chat-output" class="chat-result">Sẵn sàng nhận lệnh.</pre>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <h2>Sáng tác Truyện Ma</h2>
-        <input type="text" id="ghost-input" placeholder="Nhập chủ đề (VD: Bệnh viện, Ở trọ...)">
-        <button id="btn-ghost-create">Viết truyện</button>
-        <span id="ghost-status" class="status-text"></span>
-        <div id="ghost-output" class="output-box"></div>
-      </div>
-
-      <div class="card">
-        <h2>Đuổi Hình Bắt Chữ</h2>
-        <div id="riddle-display" class="game-emoji">❓❔❓</div>
-        <div class="row">
-          <input type="text" id="riddle-input" placeholder="Gõ đáp án..." style="margin-bottom:0; flex:1;">
-          <button id="btn-riddle-guess">Đoán</button>
-        </div>
-        <div class="row" style="margin-top: 10px;">
-          <button id="btn-riddle-new" class="btn-gray" style="flex:1;">Lấy câu đố</button>
-          <button id="btn-riddle-ans" class="btn-red" style="flex:1;">Xem đáp án</button>
-        </div>
-        <span id="riddle-status" class="status-text" style="text-align:center; color: var(--primary);">Sẵn sàng! Bấm Lấy câu đố.</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content: space-between;">
-        <h2>Cờ Caro (Đấu AI Local)</h2>
-        <button id="btn-caro-reset" class="btn-gray">Đầu hàng / Ván mới</button>
-      </div>
-      <span id="caro-status" class="status-text" style="color: var(--success); font-size: 15px;">Bạn đi trước (Đánh X)</span>
-      <div class="caro-wrapper" id="caro-scroll">
-        <div class="caro-grid" id="caro-board"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Hàm gọi API dùng chung
-    async function apiCall(endpoint, payload) {
-      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lỗi máy chủ.");
-      return data;
-    }
-
-    // --- MODULE CHAT ---
-    document.getElementById("btn-chat-send").onclick = async () => {
-      const msg = document.getElementById("chat-input").value.trim();
-      if (!msg) return;
-      document.getElementById("chat-status").textContent = "⏳ Đang gọi AI...";
-      document.getElementById("chat-status").style.color = "var(--warning)";
-      document.getElementById("chat-output").textContent = "Vui lòng chờ...";
-      try {
-        const res = await apiCall("/api/chat", { message: msg, search: document.getElementById("chat-search").checked });
-        document.getElementById("chat-status").textContent = res.search_status;
-        document.getElementById("chat-status").style.color = "var(--success)";
-        document.getElementById("chat-output").textContent = res.reply;
-      } catch (err) {
-        document.getElementById("chat-status").textContent = "Lỗi kết nối";
-        document.getElementById("chat-status").style.color = "var(--danger)";
-        document.getElementById("chat-output").textContent = err.message;
-      }
-    };
+  <section class="hero-section">
+    <h1 class="hero-title">KHÁM PHÁ KHÔNG GIAN AI 3D</h1>
+    <p class="hero-sub">Tích hợp Trí tuệ Nhân tạo thông minh, Minigame đa năng và công cụ sáng tạo trong một giao diện 3D sống động.</p>
     
-    document.getElementById("btn-chat-clear").onclick = async () => {
-      await apiCall("/api/clear", {});
-      document.getElementById("chat-input").value = "";
-      document.getElementById("chat-status").textContent = "Đã xóa trí nhớ";
-      document.getElementById("chat-output").textContent = "Phiên làm việc mới.";
-    };
+    <a href="#" class="hero-btn">GỬI YÊU CẦU NGAY</a>
 
-    // --- MODULE LYRIC ---
-    document.getElementById("btn-lyric-search").onclick = async () => {
-      const query = document.getElementById("lyric-input").value.trim();
-      if (!query) return;
-      document.getElementById("lyric-output").style.display = "none";
-      document.getElementById("lyric-status").textContent = "⏳ Đang tìm kiếm...";
-      document.getElementById("lyric-status").style.color = "var(--warning)";
-      try {
-        const res = await apiCall("/api/get_lyrics", { query });
-        document.getElementById("lyric-output").textContent = res.lyrics;
-        document.getElementById("lyric-output").style.display = "block";
-        document.getElementById("lyric-status").textContent = "✅ Đã tìm thấy!";
-        document.getElementById("lyric-status").style.color = "var(--success)";
-      } catch (err) {
-        document.getElementById("lyric-status").textContent = "❌ " + err.message;
-        document.getElementById("lyric-status").style.color = "var(--danger)";
-      }
-    };
+    <div class="cube-container">
+      <div class="cube-3d"></div>
+    </div>
+  </section>
 
-    // --- MODULE TRUYỆN MA ---
-    document.getElementById("btn-ghost-create").onclick = async () => {
-      const topic = document.getElementById("ghost-input").value.trim();
-      document.getElementById("ghost-output").style.display = "none";
-      document.getElementById("ghost-status").textContent = "⏳ Đang sáng tác...";
-      document.getElementById("ghost-status").style.color = "var(--warning)";
-      try {
-        const res = await apiCall("/api/ghost_story", { topic });
-        document.getElementById("ghost-output").textContent = res.story;
-        document.getElementById("ghost-output").style.display = "block";
-        document.getElementById("ghost-status").textContent = "✅ Hoàn tất";
-        document.getElementById("ghost-status").style.color = "var(--success)";
-      } catch (err) {
-        document.getElementById("ghost-status").textContent = "❌ " + err.message;
-        document.getElementById("ghost-status").style.color = "var(--danger)";
-      }
-    };
+  <section class="features" id="features">
+    <div class="grid">
+      <div class="card blue">
+        <div class="card-emoji">💬</div>
+        <h3>Chat AI Thông Minh</h3>
+        <p>Phản hồi nhanh chóng, hỗ trợ nối mạng và giải đáp đa dạng câu hỏi với bộ não Gemini & Groq.</p>
+      </div>
+      <div class="card purple">
+        <div class="card-emoji">🎶</div>
+        <h3>Tra cứu Lyrics</h3>
+        <p>Tìm lời bài hát karaoke chuyên nghiệp dựa trên tên hoặc trích đoạn câu hát bất kỳ.</p>
+      </div>
+      <div class="card green">
+        <div class="card-emoji">👻</div>
+        <h3>Sáng tác Truyện Ma</h3>
+        <p>Cung cấp chủ đề và AI sẽ viết nên một câu chuyện ma rùng rợn, bất ngờ dành cho bạn.</p>
+      </div>
+      <div class="card orange">
+        <div class="card-emoji">🧩</div>
+        <h3>Đuổi Hình Bắt Chữ</h3>
+        <p>Giải trí Local với minigame kinh điển, đoán từ dựa trên các Emoji vui nhộn.</p>
+      </div>
+      <div class="card blue">
+        <div class="card-emoji">⭕</div>
+        <h3>Cờ Caro 25x25</h3>
+        <p>Đấu Local trên bàn cờ lớn, bẫy Bot thông minh với luật chặn hai đầu chuyên nghiệp.</p>
+      </div>
+      <div class="card gray" style="background: rgba(100,116,139,0.1);">
+        <div class="card-emoji">⚙️</div>
+        <h3>Cấu hình Hệ thống</h3>
+        <p>Tùy chỉnh phiên làm việc, quản lý trí nhớ và cấu hình kết nối local.</p>
+      </div>
+    </div>
+  </section>
 
-    // --- MODULE ĐUỔI HÌNH BẮT CHỮ ---
-    document.getElementById("btn-riddle-new").onclick = async () => {
-      document.getElementById("riddle-input").value = "";
-      document.getElementById("riddle-display").textContent = "⏳";
-      try {
-        const res = await apiCall("/api/game/riddle", {});
-        document.getElementById("riddle-display").textContent = res.emoji;
-        document.getElementById("riddle-status").textContent = "Đã có câu hỏi!";
-        document.getElementById("riddle-status").style.color = "var(--primary)";
-      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
-    };
+  <section class="cta-section">
+    <h2>Trải nghiệm sự khác biệt!</h2>
+    <p>Workspace số hóa, mượt mà và đầy cảm hứng sáng tạo đang chờ đón bạn.</p>
+    <a href="#" class="hero-btn" style="box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);">BẮT ĐẦU NGAY</a>
+  </section>
 
-    document.getElementById("btn-riddle-guess").onclick = async () => {
-      const guess = document.getElementById("riddle-input").value.trim();
-      if (!guess) return;
-      try {
-        const res = await apiCall("/api/game/guess", { guess });
-        document.getElementById("riddle-status").textContent = res.message;
-        document.getElementById("riddle-status").style.color = res.correct ? "var(--success)" : "var(--danger)";
-      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
-    };
+  <footer>
+    © 2026 AI Workspace 3D. Chuyên Nghiệp. Đẹp. Mượt Mà.
+  </footer>
 
-    document.getElementById("btn-riddle-ans").onclick = async () => {
-      try {
-        const res = await apiCall("/api/game/answer", {});
-        document.getElementById("riddle-status").textContent = res.message;
-        document.getElementById("riddle-status").style.color = "var(--danger)";
-        document.getElementById("riddle-display").textContent = "🙈";
-      } catch (err) { document.getElementById("riddle-status").textContent = "Lỗi: " + err.message; }
-    };
-    
-    document.getElementById("riddle-input").addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById("btn-riddle-guess").click(); });
-
-    // --- MODULE CỜ CARO 25x25 ---
-    const SIZE = 25;
-    let caroState = [];
-    let caroActive = true;
-    const boardEl = document.getElementById("caro-board");
-    const statusEl = document.getElementById("caro-status");
-
-    function renderCaro() {
-      boardEl.innerHTML = "";
-      for (let r = 0; r < SIZE; r++) {
-        for (let c = 0; c < SIZE; c++) {
-          const div = document.createElement("div");
-          div.className = "caro-cell";
-          div.id = `c-${r}-${c}`;
-          if (caroState[r][c] !== "") {
-            div.textContent = caroState[r][c];
-            div.style.color = caroState[r][c] === 'X' ? "var(--primary)" : "var(--danger)";
-          }
-          div.onclick = () => handleCaroClick(r, c);
-          boardEl.appendChild(div);
-        }
-      }
-    }
-
-    function checkWin(r, c, p) {
-      const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-      for (let [dr, dc] of dirs) {
-        let count = 1; let cells = [[r,c]];
-        let nr = r + dr, nc = c + dc;
-        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p) { count++; cells.push([nr,nc]); nr+=dr; nc+=dc; }
-        nr = r - dr; nc = c - dc;
-        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p) { count++; cells.push([nr,nc]); nr-=dr; nc-=dc; }
-        if(count >= 5) return cells;
-      }
-      return null;
-    }
-
-    function evalScore(r, c, p) {
-      let score = 0; const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-      for (let [dr, dc] of dirs) {
-        let count = 1, open = 0;
-        let nr = r+dr, nc = c+dc;
-        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; nr+=dr; nc+=dc; }
-        if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]==='') open++;
-        nr = r-dr; nc = c-dc;
-        while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]===p){ count++; nr-=dr; nc-=dc; }
-        if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && caroState[nr][nc]==='') open++;
-        
-        if(count >= 5) score += 100000;
-        else if(count === 4 && open > 0) score += 10000;
-        else if(count === 3 && open === 2) score += 5000;
-        else if(count === 3 && open === 1) score += 500;
-        else if(count === 2 && open === 2) score += 300;
-      }
-      return score;
-    }
-
-    function botMove() {
-      if(!caroActive) return;
-      let best = -1, move = null;
-      if(caroState[12][12]==='') move = {r:12, c:12};
-      else {
-        for(let r=0; r<SIZE; r++) {
-          for(let c=0; c<SIZE; c++) {
-            if(caroState[r][c]==='') {
-              let hasN=false;
-              for(let i=-2; i<=2; i++) for(let j=-2; j<=2; j++) {
-                if(r+i>=0 && r+i<SIZE && c+j>=0 && c+j<SIZE && caroState[r+i][c+j]!=='') hasN=true;
-              }
-              if(!hasN) continue;
-              let att = evalScore(r,c,'O'), def = evalScore(r,c,'X');
-              let tot = att + (def*1.5) + Math.random();
-              if(tot > best) { best = tot; move = {r, c}; }
-            }
-          }
-        }
-      }
-      if(move) {
-        caroState[move.r][move.c] = 'O';
-        let cell = document.getElementById(`c-${move.r}-${move.c}`);
-        cell.textContent = 'O'; cell.style.color = "var(--danger)";
-        let win = checkWin(move.r, move.c, 'O');
-        if(win) {
-          win.forEach(([wr,wc]) => document.getElementById(`c-${wr}-${wc}`).classList.add("win-cell"));
-          statusEl.textContent = "Máy thắng! Bạn gà quá 😆"; statusEl.style.color = "var(--danger)"; caroActive = false;
-        } else {
-          statusEl.textContent = "Bạn đi trước (Đánh X)"; statusEl.style.color = "var(--success)";
-        }
-      }
-    }
-
-    function handleCaroClick(r, c) {
-      if(caroState[r][c] !== '' || !caroActive) return;
-      caroState[r][c] = 'X';
-      let cell = document.getElementById(`c-${r}-${c}`);
-      cell.textContent = 'X'; cell.style.color = "var(--primary)";
-      
-      let win = checkWin(r, c, 'X');
-      if(win) {
-        win.forEach(([wr,wc]) => document.getElementById(`c-${wr}-${wc}`).classList.add("win-cell"));
-        statusEl.textContent = "Bạn thắng rồi! Quá tuyệt 🎉"; statusEl.style.color = "var(--success)"; caroActive = false;
-      } else {
-        statusEl.textContent = "Máy đang nghĩ..."; statusEl.style.color = "var(--warning)";
-        setTimeout(botMove, 50);
-      }
-    }
-
-    document.getElementById("btn-caro-reset").onclick = () => {
-      caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill(''));
-      caroActive = true;
-      statusEl.textContent = "Bạn đi trước (Đánh X)"; statusEl.style.color = "var(--success)";
-      renderCaro();
-      const scroll = document.getElementById("caro-scroll");
-      if(scroll) { scroll.scrollLeft = scroll.scrollWidth/2 - scroll.clientWidth/2; scroll.scrollTop = scroll.scrollHeight/2 - scroll.clientHeight/2; }
-    };
-
-    // Khởi tạo bàn cờ lần đầu
-    document.getElementById("btn-caro-reset").click();
-  </script>
 </body>
 </html>
