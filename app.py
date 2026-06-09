@@ -169,18 +169,18 @@ def ask_github_models(message: str) -> tuple[str, str]:
 
 # ── Fallback chain khi Gemini lỗi ────────────────────────────────────────────
 def ai_fallback(message: str, gemini_err: str) -> tuple[str, str]:
-    """Thử lần lượt: OpenRouter → GitHub Models → Tavily."""
+    """Thử lần lượt: OpenRouter → Tavily → GitHub Models."""
     reply, status = ask_openrouter(message)
-    if status != "skip":
-        return reply, status
-
-    reply, status = ask_github_models(message)
     if status != "skip":
         return reply, status
 
     reply, status = tavily_answer(message)
     if "Lỗi" not in status:
-        return reply, f"Tavily Search (Gemini quá tải)"
+        return reply, "Tavily Search (Gemini quá tải)"
+
+    reply, status = ask_github_models(message)
+    if status != "skip":
+        return reply, status
 
     return gemini_err, "Lỗi – Tất cả dịch vụ không khả dụng"
 
