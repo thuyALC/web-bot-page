@@ -3,656 +3,338 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trợ lý Web AI Đa Năng 3D</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>AI Workspace Workspace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { 
-      color-scheme: light; 
-      font-family: 'Inter', sans-serif; 
-      /* Dải màu rực rỡ 3D */
-      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-      --panel-bg: rgba(255, 255, 255, 0.9);
-      --text-main: #2c3e50;
-      --text-sub: #7f8c8d;
-      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-      --shadow-button: 3px 3px 6px #c8c8c8, -3px -3px 6px #ffffff;
-      --shadow-button-active: inset 2px 2px 5px #c8c8c8, inset -2px -2px 5px #ffffff;
-      
-      /* Màu sắc các mục */
-      --color-chat: #1abc9c;
-      --color-lyric: #3498db;
-      --color-ghost: #8e44ad;
-      --color-game: #e67e22;
+    :root {
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
     
-    * { box-sizing: border-box; transition: all 0.2s ease-in-out; }
+    body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; padding: 32px 16px; display: flex; justify-content: center; }
     
-    body { 
-      margin: 0; 
-      min-height: 100vh; 
-      display: grid; 
-      place-items: center; 
-      padding: 24px; 
-      background: var(--bg-gradient);
-    }
+    main { width: 100%; max-width: 1024px; display: flex; flex-direction: column; gap: 24px; }
+
+    .header-title { text-align: center; margin-bottom: 8px; }
+    .header-title h1 { font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.025em; }
+    .header-title p { color: var(--text-muted); font-size: 15px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: var(--shadow-md); }
     
-    main { 
-      width: min(1000px, 100%); 
-      display: grid; 
-      gap: 20px; 
-    }
+    .card-header { display: flex; align-items: center; margin-bottom: 16px; gap: 8px; }
+    .card-header h2 { font-size: 18px; font-weight: 600; color: var(--text-main); }
     
-    /* Panel phong cách Kính mờ 3D */
-    .panel { 
-      background: var(--panel-bg); 
-      backdrop-filter: blur(4px); 
-      -webkit-backdrop-filter: blur(4px); 
-      border-radius: 20px; 
-      padding: 25px; 
-      box-shadow: var(--shadow-light); 
-      border: 1px solid rgba(255, 255, 255, 0.2); 
-    }
-    .panel:hover { transform: translateY(-3px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
+    .form-group { margin-bottom: 16px; }
+    textarea, input[type="text"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; background: #f9fafb; color: var(--text-main); transition: all 0.2s; outline: none; }
+    textarea:focus, input[type="text"]:focus { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    textarea { min-height: 100px; resize: vertical; }
+
+    .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
+    button:active { transform: scale(0.98); }
     
-    h1, h2 { margin: 0 0 15px; line-height: 1.2; color: var(--text-main); }
-    h1 { font-size: 30px; font-weight: 700; background: linear-gradient(to right, #2c3e50, #4ca1af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } 
-    h2 { font-size: 20px; font-weight: 600; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-purple { background: var(--purple); color: white; }
+    .btn-purple:hover { background: #7c3aed; }
+
+    label.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; margin-bottom: 12px; display: none; }
+    .badge.success { background: #d1fae5; color: #065f46; display: inline-flex; }
+    .badge.error { background: #fee2e2; color: #991b1b; display: inline-flex; }
+    .badge.warning { background: #fef3c7; color: #92400e; display: inline-flex; }
+
+    pre.result-box { background: #1f2937; color: #f9fafb; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 120px; }
     
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: #f8fafc; border-left: 4px solid var(--primary); font-size: 15px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+
+    /* Game Styling */
+    .riddle-display { font-size: 48px; text-align: center; padding: 32px 20px; margin-bottom: 16px; background: #f3f4f6; border-radius: 12px; letter-spacing: 8px; border: 1px dashed var(--border-color); }
     
-    /* Input phong cách 3D lõm */
-    textarea, input { 
-      width: 100%; 
-      border: 1px solid #ccd6dd; 
-      border-radius: 12px; 
-      padding: 14px; 
-      font: inherit; 
-      margin-bottom: 10px; 
-      background: #f8f9fa; 
-      box-shadow: inset 2px 2px 5px #e0e0e0, inset -2px -2px 5px #ffffff;
-      outline: none;
-    }
-    textarea:focus, input:focus { border-color: var(--color-lyric); background: #fff; }
-    textarea { min-height: 120px; resize: vertical; }
-    
-    /* Nút bấm phong cách 3D nổi Neumorphic */
-    button { 
-      border: 0; 
-      border-radius: 12px; 
-      padding: 12px 18px; 
-      font: inherit; 
-      font-weight: 700; 
-      color: #ffffff; 
-      cursor: pointer; 
-      background: #3498db; 
-      box-shadow: var(--shadow-button);
-      position: relative;
-    }
-    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
-    button:active { box-shadow: var(--shadow-button-active); transform: translateY(1px); }
-    
-    button.secondary { background: #7f8c8d; }
-    button.warning { background: #e67e22; }
-    
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
-    
-    /* Kết quả chuyên nghiệp màu tối */
-    pre { 
-      min-height: 100px; 
-      white-space: pre-wrap; 
-      overflow-wrap: anywhere; 
-      margin: 0; 
-      padding: 18px; 
-      border-radius: 12px; 
-      background: #2c3e50; 
-      color: #ecf0f1; 
-      line-height: 1.6; 
-      font-size: 14px;
-      box-shadow: inset 3px 3px 8px rgba(0,0,0,0.2);
-    }
-    
-    /* Output Box Ma & Lyric màu sắc rực rỡ */
-    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-size: 15px; line-height: 1.7; background: linear-gradient(135deg, #2c3e50, #1a1a2e); color: #e0e0e0; border-left: 5px solid var(--color-ghost); padding: 18px; border-radius: 8px; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);}
-    .lyric-output { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; background: #fffdf9; color: #2c3e50; border-left: 5px solid var(--color-lyric); padding: 18px; border-radius: 8px; font-size: 16px; line-height: 1.8; white-space: pre-wrap; box-shadow: 5px 5px 15px rgba(0,0,0,0.05);}
-    
-    /* Game Game 3D */
-    .game-board { font-size: 60px; text-align: center; padding: 25px; margin: 15px 0; background: #eaf1f1; border-radius: 15px; letter-spacing: 12px; box-shadow: inset 3px 3px 8px #c8d6d6, inset -3px -3px 8px #ffffff;}
-    
-    .caro-container { max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 12px; margin: 15px 0; background: #eaf1f1; box-shadow: inset 2px 2px 5px #c8d6d6;}
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 1px; background: #ccd6dd; width: max-content; padding: 1px;}
-    .caro-cell { width: 38px; height: 38px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; user-select: none;}
-    .caro-cell:hover { background: #f0f3f3; }
-    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; animation: winPulse 1s infinite; }
-    
-    /* Checkbox chuyên nghiệp */
-    label input[type="checkbox"] { width: auto; margin-right: 8px; cursor: pointer; transform: scale(1.2); }
-    label { font-size: 14px; color: var(--text-sub); cursor: pointer; display: flex; align-items: center; }
-    
-    /* Animation thắng cuộc */
-    @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    
-    /* Mobile responsive */
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 15px; } h1 { font-size: 26px; } }
+    .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; }
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); gap: 1px; background: #d1d5db; width: max-content; padding: 1px; margin: 0 auto; }
+    .caro-cell { width: 36px; height: 36px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; cursor: pointer; user-select: none; transition: background 0.1s; }
+    .caro-cell:hover { background: #f3f4f6; }
+    .caro-cell.win-cell { background: #fef08a !important; color: #92400e !important; }
+
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
   </style>
 </head>
 <body>
   <main>
-    <section class="panel" style="text-align: center;">
-      <h1>🚀 Trợ lý Web AI Đa Năng 3D</h1>
-      <p style="color: var(--text-sub); margin: 0; font-size: 15px;">Chatbot Fallback - Tìm Lyrics Bài Hát - Minigame 3D</p>
-    </section>
+    <div class="header-title">
+      <h1>AI Workspace</h1>
+      <p>Công cụ Tích hợp Thông minh & Tiện ích Mở rộng</p>
+    </div>
 
-    <section class="grid">
-      <div class="panel" style="border-top: 4px solid var(--color-chat);">
-        <h2>💬 Chat AI (Gemini + Groq)</h2>
-        <textarea id="message" placeholder="Nhập câu hỏi tại đây..."></textarea>
-        <div class="row">
-          <button id="send" style="background: var(--color-chat);">Gửi tin nhắn</button>
-          <button class="secondary" id="clear">Xóa nhớ</button>
-          <label><input id="search" type="checkbox" checked> Nối mạng web</label>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <span>💬</span><h2>Trợ lý Trí tuệ Nhân tạo</h2>
+        </div>
+        <div class="form-group">
+          <textarea id="message" placeholder="Bạn cần hỗ trợ điều gì hôm nay?"></textarea>
+        </div>
+        <div class="button-group">
+          <button id="send" class="btn-primary">Gửi yêu cầu</button>
+          <button id="clear" class="btn-secondary">Làm mới</button>
+          <label class="checkbox-label"><input id="search" type="checkbox" checked> Chế độ Online</label>
         </div>
       </div>
 
-      <div class="panel" style="border-top: 4px solid var(--color-lyric);">
-        <h2>🎶 Tìm Lời Bài Hát (Lyrics)</h2>
-        <input id="song-query" placeholder="Nhập tên bài hát hoặc 1 câu hát...">
-        <div class="row">
-          <button id="btn-lyric" style="background: var(--color-lyric);">Tìm Lyric 3D</button>
+      <div class="card">
+        <div class="card-header">
+          <span>🎵</span><h2>Tra cứu Lời Bài Hát</h2>
         </div>
-        <div id="lyric-status" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: var(--color-chat);"></div>
-        <div class="lyric-output" id="lyric-output"></div>
+        <div class="form-group">
+          <input type="text" id="song-query" placeholder="Nhập tên bài hoặc trích đoạn lời bài hát...">
+        </div>
+        <div class="button-group">
+          <button id="btn-lyric" class="btn-primary" style="background: var(--purple);">Tìm kiếm</button>
+        </div>
+        <div id="lyric-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
+        <div id="lyric-output" class="output-box" style="border-left-color: var(--purple);"></div>
       </div>
-    </section>
+    </div>
 
-    <section class="panel">
-      <h2>Kết quả Chat</h2>
-      <pre id="result">Hệ thống đã sẵn sàng hỗ trợ bạn.</pre>
-    </section>
-
-    <section class="grid">
-      <div class="panel" style="border-top: 4px solid var(--color-ghost);">
-        <h2>👻 Kể Truyện Ma ua Gemini</h2>
-        <input id="story-topic" placeholder="Chủ đề (VD: trọ đêm, trường học...)">
-        <div class="row">
-          <button id="create-story" style="background: var(--color-ghost);">Triệu hồi truyện</button>
-        </div>
-        <div id="story-status" style="font-size: 14px; color: var(--color-game); font-weight: bold; margin-top: 10px;"></div>
-        <div class="story-output" id="story-output"></div>
+    <div class="card" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-md);">
+      <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 16px; margin: 0;">Kết quả truy vấn</h2>
+        <div id="chat-status" class="badge"></div>
       </div>
+      <pre id="result" class="result-box">Hệ thống sẵn sàng tiếp nhận lệnh.</pre>
+    </div>
 
-      <div class="panel" style="border-top: 4px solid var(--color-game);">
-        <h2>🧩 Đuổi Hình Bắt Chữ (Local)</h2>
-        <div class="game-board" id="game-display">❓❔❓</div>
-        <div class="row" style="display: flex;">
-          <input id="game-guess" placeholder="Đáp án của bạn..." style="flex: 1; margin-bottom: 0; border-radius: 12px 0 0 12px;">
-          <button id="btn-guess" style="border-radius: 0 12px 12px 0; background: var(--color-game); padding: 0 25px;">Đoán</button>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <span>📖</span><h2>Sáng tác Truyện Ma</h2>
         </div>
-        <div class="row" style="margin-top: 10px;">
-          <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
-          <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
+        <div class="form-group">
+          <input type="text" id="story-topic" placeholder="Chủ đề (VD: Bệnh viện bỏ hoang, chuyến xe đêm...)">
         </div>
-        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: var(--color-chat);">Sẵn sàng!</div>
-      </div>
-    </section>
-
-    <section class="panel" style="border-top: 4px solid var(--color-game);">
-        <h2>⭕ Cờ Caro (Đấu với AI Local)</h2>
-        <div id="caro-status" style="text-align: center; font-weight: bold; color: var(--color-chat); margin-top: 5px;">Bạn đi trước (Đánh X)To make the interface "beautiful," "professional," "3D," and have "vibrant/lively colors," a total redesign is needed. Here is a strategy to shift the design philosophy to a mix of **Glassmorphism** (frosted glass), **Neumorphism** (extruded shadows), and powerful, lively color gradients.
-
-I have optimized your `index.html` file with the following changes:
-
-1.  **Fonts and Background:** It uses a dynamic gradient background and a modern font called "Inter".
-2.  **Panels (Cards):** These now have a "frosted glass" effect with large rounded corners and deep shadows to give them a significant 3D lift. There is also a subtle hover effect.
-3.  **Buttons and Inputs:** These use the Neumorphic "extruded" look, featuring lively color gradients and a "pushed in" (active) effect when clicked.
-4.  **Caro Board & Game Emoji:** The coloring is much cleaner and more professional.
-5.  **Grid Structure:** The grid is kept, but with more logical gaps and padding.
-
-Copy the entire content below and replace your current `templates/index.html` file with it:
-
-```html
-<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trợ lý Web AI Đa Năng 3D</title>
-  <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
-  <style>
-    :root { 
-      color-scheme: light; 
-      font-family: 'Inter', sans-serif; 
-      /* Vibrant 3D gradients */
-      --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-      --panel-bg: rgba(255, 255, 255, 0.9);
-      --text-main: #2c3e50;
-      --text-sub: #7f8c8d;
-      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-      --shadow-button: 3px 3px 6px #c8c8c8, -3px -3px 6px #ffffff;
-      --shadow-button-active: inset 2px 2px 5px #c8c8c8, inset -2px -2px 5px #ffffff;
-      
-      /* Lively section colors */
-      --color-chat: #1abc9c;
-      --color-lyric: #3498db;
-      --color-ghost: #8e44ad;
-      --color-game: #e67e22;
-    }
-    
-    * { box-sizing: border-box; transition: all 0.2s ease-in-out; }
-    
-    body { 
-      margin: 0; 
-      min-height: 100vh; 
-      display: grid; 
-      place-items: center; 
-      padding: 24px; 
-      background: var(--bg-gradient);
-    }
-    
-    main { 
-      width: min(1000px, 100%); 
-      display: grid; 
-      gap: 20px; 
-    }
-    
-    /* Panel Glassmorphism style with 3D lift */
-    .panel { 
-      background: var(--panel-bg); 
-      backdrop-filter: blur(4px); 
-      -webkit-backdrop-filter: blur(4px); 
-      border-radius: 20px; 
-      padding: 25px; 
-      box-shadow: var(--shadow-light); 
-      border: 1px solid rgba(255, 255, 255, 0.2); 
-    }
-    .panel:hover { transform: translateY(-3px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
-    
-    h1, h2 { margin: 0 0 15px; line-height: 1.2; color: var(--text-main); }
-    h1 { font-size: 30px; font-weight: 700; background: linear-gradient(to right, #2c3e50, #4ca1af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } 
-    h2 { font-size: 20px; font-weight: 600; }
-    
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    
-    /* Immersed 3D Input style */
-    textarea, input { 
-      width: 100%; 
-      border: 1px solid #ccd6dd; 
-      border-radius: 12px; 
-      padding: 14px; 
-      font: inherit; 
-      margin-bottom: 10px; 
-      background: #f8f9fa; 
-      box-shadow: inset 2px 2px 5px #e0e0e0, inset -2px -2px 5px #ffffff;
-      outline: none;
-    }
-    textarea:focus, input:focus { border-color: var(--color-lyric); background: #fff; }
-    textarea { min-height: 120px; resize: vertical; }
-    
-    /* Extruded 3D Neumorphic Button style */
-    button { 
-      border: 0; 
-      border-radius: 12px; 
-      padding: 12px 18px; 
-      font: inherit; 
-      font-weight: 700; 
-      color: #ffffff; 
-      cursor: pointer; 
-      background: #3498db; 
-      box-shadow: var(--shadow-button);
-      position: relative;
-    }
-    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
-    button:active { box-shadow: var(--shadow-button-active); transform: translateY(1px); }
-    
-    button.secondary { background: #7f8c8d; }
-    button.warning { background: #e67e22; }
-    
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
-    
-    /* Dark professional output text */
-    pre { 
-      min-height: 100px; 
-      white-space: pre-wrap; 
-      overflow-wrap: anywhere; 
-      margin: 0; 
-      padding: 18px; 
-      border-radius: 12px; 
-      background: #2c3e50; 
-      color: #ecf0f1; 
-      line-height: 1.6; 
-      font-size: 14px;
-      box-shadow: inset 3px 3px 8px rgba(0,0,0,0.2);
-    }
-    
-    /* Ghost & Lyric Output Boxes with deep shadows and lively side-borders */
-    .story-output { display: none; margin-top: 15px; white-space: pre-wrap; font-size: 15px; line-height: 1.7; background: linear-gradient(135deg, #2c3e50, #1a1a2e); color: #e0e0e0; border-left: 5px solid var(--color-ghost); padding: 18px; border-radius: 8px; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);}
-    .lyric-output { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; background: #fffdf9; color: #2c3e50; border-left: 5px solid var(--color-lyric); padding: 18px; border-radius: 8px; font-size: 16px; line-height: 1.8; white-space: pre-wrap; box-shadow: 5px 5px 15px rgba(0,0,0,0.05);}
-    
-    /* Immersed Game Game Board style */
-    .game-board { font-size: 60px; text-align: center; padding: 25px; margin: 15px 0; background: #eaf1f1; border-radius: 15px; letter-spacing: 12px; box-shadow: inset 3px 3px 8px #c8d6d6, inset -3px -3px 8px #ffffff;}
-    
-    /* Immersed Caro Game grid style */
-    .caro-container { max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid #ccd6dd; border-radius: 12px; margin: 15px 0; background: #eaf1f1; box-shadow: inset 2px 2px 5px #c8d6d6;}
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 1px; background: #ccd6dd; width: max-content; padding: 1px;}
-    .caro-cell { width: 38px; height: 38px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; user-select: none;}
-    .caro-cell:hover { background: #f0f3f3; }
-    .caro-cell.win-cell { background: #f1c40f !important; color: #fff; animation: winPulse 1s infinite; }
-    
-    /* Checkbox professional style */
-    label input[type="checkbox"] { width: auto; margin-right: 8px; cursor: pointer; transform: scale(1.2); }
-    label { font-size: 14px; color: var(--text-sub); cursor: pointer; display: flex; align-items: center; }
-    
-    /* Victory pulse animation */
-    @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    
-    /* Mobile responsive tweaks */
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 15px; } h1 { font-size: 26px; } }
-  </style>
-</head>
-<body>
-  <main>
-    <section class="panel" style="text-align: center;">
-      <h1>🚀 Trợ lý Web AI Đa Năng 3D</h1>
-      <p style="color: var(--text-sub); margin: 0; font-size: 15px;">Chatbot Fallback - Tìm Lyrics Bài Hát - Minigame 3D</p>
-    </section>
-
-    <section class="grid">
-      <div class="panel" style="border-top: 4px solid var(--color-chat);">
-        <h2>💬 Chat AI (Gemini + Groq)</h2>
-        <textarea id="message" placeholder="Nhập câu hỏi tại đây..."></textarea>
-        <div class="row">
-          <button id="send" style="background: var(--color-chat);">Gửi tin nhắn</button>
-          <button class="secondary" id="clear">Xóa nhớ</button>
-          <label><input id="search" type="checkbox" checked> Nối mạng web</label>
+        <div class="button-group">
+          <button id="create-story" class="btn-primary" style="background: var(--success);">Bắt đầu sáng tác</button>
         </div>
+        <div id="story-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
+        <div id="story-output" class="output-box" style="border-left-color: var(--success);"></div>
       </div>
 
-      <div class="panel" style="border-top: 4px solid var(--color-lyric);">
-        <h2>🎶 Tìm Lời Bài Hát (Lyrics)</h2>
-        <input id="song-query" placeholder="Nhập tên bài hát hoặc 1 câu hát...">
-        <div class="row">
-          <button id="btn-lyric" style="background: var(--color-lyric);">Tìm Lyric 3D</button>
+      <div class="card">
+        <div class="card-header">
+          <span>🧩</span><h2>Minigame: Đuổi Hình Bắt Chữ</h2>
         </div>
-        <div id="lyric-status" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: var(--color-chat);"></div>
-        <div class="lyric-output" id="lyric-output"></div>
+        <div id="game-display" class="riddle-display">❓❔❓</div>
+        <div class="form-group" style="display: flex; gap: 8px;">
+          <input type="text" id="game-guess" placeholder="Nhập đáp án..." style="margin-bottom: 0;">
+          <button id="btn-guess" class="btn-primary">Đoán</button>
+        </div>
+        <div class="button-group" style="margin-top: 12px;">
+          <button id="btn-new-riddle" class="btn-secondary" style="flex: 1;">Câu hỏi mới</button>
+          <button id="btn-show-answer" class="btn-secondary" style="flex: 1; color: var(--danger);">Xem đáp án</button>
+        </div>
+        <div style="text-align: center; margin-top: 16px;">
+            <div id="game-status" class="badge">Sẵn sàng!</div>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section class="panel">
-      <h2>Kết quả Chat</h2>
-      <pre id="result">Hệ thống đã sẵn sàng hỗ trợ bạn.</pre>
-    </section>
-
-    <section class="grid">
-      <div class="panel" style="border-top: 4px solid var(--color-ghost);">
-        <h2>👻 Kể Truyện Ma ua Gemini</h2>
-        <input id="story-topic" placeholder="Chủ đề (VD: trọ đêm, trường học...)">
-        <div class="row">
-          <button id="create-story" style="background: var(--color-ghost);">Triệu hồi truyện</button>
+    <div class="card">
+      <div class="card-header" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span>⭕</span><h2>Cờ Caro (Luật 5 nước)</h2>
         </div>
-        <div id="story-status" style="font-size: 14px; color: var(--color-game); font-weight: bold; margin-top: 10px;"></div>
-        <div class="story-output" id="story-output"></div>
+        <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px;">Bạn đi trước (X)</div>
       </div>
-
-      <div class="panel" style="border-top: 4px solid var(--color-game);">
-        <h2>🧩 Đuổi Hình Bắt Chữ (Local)</h2>
-        <div class="game-board" id="game-display">❓❔❓</div>
-        <div class="row" style="display: flex;">
-          <input id="game-guess" placeholder="Đáp án của bạn..." style="flex: 1; margin-bottom: 0; border-radius: 12px 0 0 12px;">
-          <button id="btn-guess" style="border-radius: 0 12px 12px 0; background: var(--color-game); padding: 0 25px;">Đoán</button>
-        </div>
-        <div class="row" style="margin-top: 10px;">
-          <button class="secondary" id="btn-new-riddle" style="flex: 1;">Câu hỏi mới</button>
-          <button class="warning" id="btn-show-answer" style="flex: 1;">Xem đáp án</button>
-        </div>
-        <div id="game-status" style="margin-top: 12px; font-weight: bold; text-align: center; color: var(--color-chat);">Sẵn sàng!</div>
+      <div class="button-group" style="justify-content: center;">
+        <button id="btn-caro-reset" class="btn-secondary">Khởi tạo ván mới</button>
       </div>
-    </section>
+      <div class="caro-wrapper">
+          <div class="caro-grid" id="caro-board"></div>
+      </div>
+    </div>
 
-    <section class="panel" style="border-top: 4px solid var(--color-game);">
-        <h2>⭕ Cờ Caro (Đấu với AI Local)</h2>
-        <div id="caro-status" style="text-align: center; font-weight: bold; color: var(--color-chat); margin-top: 5px;">Bạn đi trước (Đánh X)</div>
-        <div class="row" style="justify-content: center; margin-top: 10px;">
-          <button class="secondary" id="btn-caro-reset">Đầu hàng / Chơi ván mới</button>
-        </div>
-        <div class="caro-container">
-            <div class="caro-grid" id="caro-board"></div>
-        </div>
-    </section>
   </main>
 
   <script>
+    const getEl = (id) => document.querySelector(id);
+    const addClick = (id, handler) => { 
+        const el = getEl(id); 
+        if (el) el.addEventListener("click", handler); 
+    };
+    
+    function updateBadge(id, text, type) {
+        const badge = getEl(id);
+        if(!badge) return;
+        badge.textContent = text;
+        badge.className = `badge ${type}`;
+        badge.style.display = 'inline-flex';
+    }
+
     async function postJson(url, data) {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ.");
+      if (!res.ok) throw new Error(json.error || "Lỗi máy chủ nội bộ.");
       return json;
     }
 
-    // ================= CHAT AI LOGIC =================
-    let chatHistory = [];
-    const resultBox = document.querySelector("#result");
-    
-    document.querySelector("#send").addEventListener("click", async () => {
-      const message = document.querySelector("#message").value.trim();
-      const search = document.querySelector("#search").checked;
+    // --- CHAT AI ---
+    addClick("#send", async () => {
+      const message = getEl("#message")?.value.trim();
+      const search = getEl("#search")?.checked;
+      const resultBox = getEl("#result");
+      
       if (!message) return;
-      resultBox.textContent = "Đang suy nghĩ (nếu lâu quá bot sẽ tự gọi cứu viện Groq)...";
+      
+      updateBadge("#chat-status", "⏳ Đang xử lý...", "warning");
+      resultBox.textContent = "Hệ thống đang phân tích yêu cầu...";
+      
       try {
-        const data = await postJson("/api/chat", { message, search, history: chatHistory });
-        chatHistory = data.history; 
-        resultBox.textContent = `[${data.search_status}]\n\n${data.reply}`;
-      } catch (err) { resultBox.textContent = "Lỗi: " + err.message; }
+        const data = await postJson("/api/chat", { message, search });
+        updateBadge("#chat-status", data.search_status, data.search_status.includes("Lỗi") ? "error" : "success");
+        resultBox.textContent = data.reply;
+      } catch (err) { 
+        updateBadge("#chat-status", "Mất kết nối", "error");
+        resultBox.textContent = err.message; 
+      }
     });
 
-    document.querySelector("#clear").addEventListener("click", () => {
-      chatHistory = [];
-      document.querySelector("#message").value = "";
-      resultBox.textContent = "Đã xóa trí nhớ tạm.";
+    addClick("#clear", async () => {
+      await postJson("/api/clear", {});
+      if(getEl("#message")) getEl("#message").value = "";
+      if(getEl("#chat-status")) getEl("#chat-status").style.display = "none";
+      if(getEl("#result")) getEl("#result").textContent = "Phiên làm việc đã được làm mới.";
     });
 
-    // ================= TÌM LYRIC LOGIC =================
-    document.querySelector("#btn-lyric").addEventListener("click", async () => {
-      const query = document.querySelector("#song-query").value.trim();
-      const status = document.querySelector("#lyric-status");
-      const output = document.querySelector("#lyric-output");
+    // --- TÌM LỜI BÀI HÁT ---
+    addClick("#btn-lyric", async () => {
+      const query = getEl("#song-query")?.value.trim();
+      const output = getEl("#lyric-output");
+      if (!query) { updateBadge("#lyric-status", "Vui lòng nhập từ khóa.", "error"); return; }
       
-      if (!query) { status.textContent = "Nhập tên bài hát hoặc 1 câu hát đi đã!"; status.style.color = "#d35400"; return; }
-      
-      status.textContent = "Đang lục lọi trí nhớ âm nhạc 3D...";
-      status.style.color = var(--color-chat);
+      updateBadge("#lyric-status", "Đang truy xuất dữ liệu...", "warning");
       output.style.display = "none";
       
       try {
         const data = await postJson("/api/get_lyrics", { query });
-        output.textContent = data.lyrics; // Use textContent to preserve \n
+        output.textContent = data.lyrics; 
         output.style.display = "block";
-        status.textContent = "Đã tìm thấy bài hát! Cầm mic lên thôi 🎤";
+        updateBadge("#lyric-status", "Truy xuất thành công", "success");
       } catch (err) { 
-        status.textContent = "Toang: " + err.message; 
-        status.style.color = "#d35400";
+        updateBadge("#lyric-status", "Lỗi: " + err.message, "error");
       }
     });
 
-    // ================= TRUYỆN MA LOGIC =================
-    document.querySelector("#create-story").addEventListener("click", async () => {
-      const topic = document.querySelector("#story-topic").value.trim();
-      const status = document.querySelector("#story-status");
-      const output = document.querySelector("#story-output");
-      if (!topic) { status.textContent = "Nhập chủ đề vào đã!"; return; }
-      status.textContent = "Đang rặn chữ 3D... Đợi tí.";
-      output.style.display = "none";
+    // --- TRUYỆN MA ---
+    addClick("#create-story", async () => {
+      const topic = getEl("#story-topic")?.value.trim() || "ngẫu nhiên";
+      const output = getEl("#story-output");
+      output.style.display = "block";
+      output.textContent = "Hệ thống đang khởi tạo nội dung...";
+      updateBadge("#story-status", "Đang xử lý...", "warning");
+      
       try {
         const data = await postJson("/api/ghost_story", { topic });
-        output.textContent = data.story;
-        output.style.display = "block";
-        status.textContent = "Chúc ngủ ngon...";
-      } catch (err) { status.textContent = err.message; }
+        output.textContent = data.story || data.error;
+        updateBadge("#story-status", "Hoàn tất", "success");
+      } catch (err) { 
+        output.textContent = "Lỗi xử lý: " + err.message; 
+        updateBadge("#story-status", "Thất bại", "error");
+      }
     });
 
-    // ================= ĐUỔI HÌNH BẮT CHỮ LOCAL LOGIC =================
-    const riddles = [
-        {"emoji": "👄💄", "ans": "son môi", "exp": "Cái môi + thỏi son"},
-        {"emoji": "🌽🎤", "ans": "bắp hát", "exp": "Trái bắp + cái micro"},
-        {"emoji": "🐎🧊", "ans": "ngựa đá", "exp": "Con ngựa + cục đá"},
-        {"emoji": "🔥🍲", "ans": "lẩu thái", "exp": "Lửa (cay nóng) + nồi lẩu"},
-        {"emoji": "👁️📻", "ans": "thị đài", "exp": "Mắt (thị) + cái đài"},
-        {"emoji": "🐒🌲", "ans": "khỉ leo cây", "exp": "Con khỉ + cái cây"},
-        {"emoji": "☁️🌧️", "ans": "mưa bóng mây", "exp": "Đám mây + trời mưa"},
-        {"emoji": "⚽🥅", "ans": "vào lưới", "exp": "Quả bóng + khung thành"},
-        {"emoji": "🐸💧", "ans": "ếch ngồi đáy giếng", "exp": "Con ếch + giọt nước"}
-    ];
-    let currentRiddle = null;
-    const gameDisplay = document.querySelector("#game-display");
-    const gameGuess = document.querySelector("#game-guess");
-    const gameStatus = document.querySelector("#game-status");
+    // --- ĐUỔI HÌNH BẮT CHỮ ---
+    const gameDisplay = getEl("#game-display");
+    const gameGuess = getEl("#game-guess");
 
-    function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "").toLowerCase(); }
+    addClick("#btn-new-riddle", async () => {
+      if(gameDisplay) gameDisplay.textContent = "⏳";
+      if(gameGuess) gameGuess.value = "";
+      try {
+        const data = await postJson("/api/game/riddle", {});
+        if(gameDisplay) gameDisplay.textContent = data.emoji;
+        updateBadge("#game-status", "Câu hỏi đã sẵn sàng", "warning");
+      } catch (err) { 
+        updateBadge("#game-status", err.message, "error");
+      }
+    });
 
-    document.querySelector("#btn-new-riddle").onclick = () => {
-        currentRiddle = riddles[Math.floor(Math.random() * riddles.length)];
-        gameDisplay.textContent = currentRiddle.emoji;
-        gameStatus.textContent = "Đã có câu đố! Đoán xem đây là từ gì?";
-        gameStatus.style.color = var(--color-chat);
-        gameGuess.value = "";
-    };
+    addClick("#btn-guess", async () => {
+      const guess = gameGuess?.value.trim();
+      if (!guess) return;
+      try {
+        const data = await postJson("/api/game/guess", { guess });
+        updateBadge("#game-status", data.message, data.correct ? "success" : "error");
+      } catch (err) { 
+        updateBadge("#game-status", err.message, "error");
+      }
+    });
 
-    document.querySelector("#btn-guess").onclick = () => {
-        if(!currentRiddle) { gameStatus.textContent = "Chưa có câu đố, bấm Câu hỏi mới đi!"; return; }
-        const guess = gameGuess.value.trim();
-        if(removeAccents(guess) === removeAccents(currentRiddle.ans)) {
-            gameStatus.textContent = `Chính xác! Đáp án: ${currentRiddle.ans} (${currentRiddle.exp})`;
-            gameStatus.style.color = "#27ae60";
-            currentRiddle = null;
-        } else {
-            gameStatus.textContent = "Sai rồi, đoán lại thử xem!";
-            gameStatus.style.color = "#d35400";
-        }
-    };
+    addClick("#btn-show-answer", async () => {
+      try {
+        const data = await postJson("/api/game/answer", {});
+        updateBadge("#game-status", data.message, "error");
+        if(gameDisplay) gameDisplay.textContent = "🙈"; 
+      } catch (err) { 
+        updateBadge("#game-status", err.message, "error");
+      }
+    });
 
-    document.querySelector("#btn-show-answer").onclick = () => {
-        if(!currentRiddle) return;
-        gameStatus.textContent = `Đáp án là: ${currentRiddle.ans} (${currentRiddle.exp})`;
-        gameStatus.style.color = "#d35400";
-        gameDisplay.textContent = "🙈";
-        currentRiddle = null;
-    };
+    if(gameGuess) {
+      gameGuess.addEventListener("keypress", (e) => { 
+        if (e.key === "Enter") getEl("#btn-guess")?.click(); 
+      });
+    }
 
-    // ================= CỜ CARO LOCAL LOGIC =================
+    // --- CỜ CARO ---
     const BOARD_SIZE = 25;
-    const caroBoard = document.getElementById('caro-board');
-    const caroStatus = document.getElementById('caro-status');
+    const caroBoard = getEl('#caro-board');
     let caroState = [];
     let caroActive = true;
 
     function initCaroState() { caroState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill('')); }
 
     function renderCaro() {
+      if(!caroBoard) return;
       caroBoard.innerHTML = '';
       for (let r = 0; r < BOARD_SIZE; r++) {
           for (let c = 0; c < BOARD_SIZE; c++) {
-              const div = document.createElement('div'); div.className = 'caro-cell'; div.id = `cell-${r}-${c}`;
+              const div = document.createElement('div');
+              div.className = 'caro-cell';
+              div.id = `cell-${r}-${c}`;
               if (caroState[r][c] !== '') {
-                  div.style.color = caroState[r][c] === 'X' ? '#146c5c' : '#d35400';
+                  div.style.color = caroState[r][c] === 'X' ? 'var(--primary)' : 'var(--danger)';
                   div.textContent = caroState[r][c];
               }
-              div.onclick = () => handleCaroClick(r, c);
+              div.addEventListener('click', () => handleCaroClick(r, c));
               caroBoard.appendChild(div);
           }
       }
     }
 
-    function checkCaroWin(r, c, player) {
-        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]]; 
-        for (let [dr, dc] of dirs) {
-            let count = 1; let winCells = [[r, c]];
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr += dr; nc += dc; }
-            nr = r - dr; nc = c - dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; winCells.push([nr, nc]); nr -= dr; nc -= dc; }
-            if (count >= 5) return winCells;
-        }
-        return null;
-    }
-
-    function evaluateScore(r, c, player) {
-        let score = 0; const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
-        for (let [dr, dc] of dirs) {
-            let count = 1; let openEnds = 0;
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr += dr; nc += dc; }
-            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === '') openEnds++;
-            nr = r - dr; nc = c - dc;
-            while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === player) { count++; nr -= dr; nc -= dc; }
-            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && caroState[nr][nc] === '') openEnds++;
-
-            if (count >= 5) score += 100000;
-            else if (count === 4 && openEnds > 0) score += 10000;
-            else if (count === 3 && openEnds === 2) score += 5000;
-            else if (count === 3 && openEnds === 1) score += 500;
-            else if (count === 2 && openEnds === 2) score += 300;
-        }
-        return score;
-    }
-
-    function botCaroMove() {
-        if (!caroActive) return;
-        let bestScore = -1; let bestMove = null;
-        if (caroState[12][12] === '') bestMove = { r: 12, c: 12 };
-        else {
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    if (caroState[r][c] === '') {
-                        let hasN = false;
-                        for(let i=-2; i<=2; i++) for(let j=-2; j<=2; j++) {
-                            if(r+i>=0 && r+i<BOARD_SIZE && c+j>=0 && c+j<BOARD_SIZE && caroState[r+i][c+j] !== '') hasN = true;
-                        }
-                        if(!hasN) continue;
-                        let attack = evaluateScore(r, c, 'O');
-                        let defense = evaluateScore(r, c, 'X');
-                        let total = attack + (defense * 1.5) + Math.random();
-                        if (total > bestScore) { bestScore = total; bestMove = { r, c }; }
-                    }
-                }
-            }
-        }
-        if (bestMove) {
-            caroState[bestMove.r][bestMove.c] = 'O';
-            document.getElementById(`cell-${bestMove.r}-${bestMove.c}`).textContent = 'O';
-            document.getElementById(`cell-${bestMove.r}-${bestMove.c}`).style.color = '#d35400';
-            const win = checkCaroWin(bestMove.r, bestMove.c, 'O');
-            if (win) {
-                win.forEach(([wr, wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add('win-cell'));
-                caroStatus.textContent = 'Máy thắng 3D! Bạn thua rồi kkk 😆'; caroStatus.style.color = '#d35400'; caroActive = false;
-            } else caroStatus.textContent = 'Tới lượt bạn (Đánh X)';
-        }
-    }
-
-    function handleCaroClick(r, c) {
-        if (caroState[r][c] !== '' || !caroActive) return;
-        caroState[r][c] = 'X';
-        document.getElementById(`cell-${r}-${c}`).textContent = 'X';
-        document.getElementById(`cell-${r}-${c}`).style.color = '#146c5c';
-        
-        const win = checkCaroWin(r, c, 'X');
-        if (win) {
-            win.forEach(([wr, wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add('win-cell'));
-            caroStatus.textContent = 'Bạn thắng rồi! Quá xuất sắc 🎉'; caroStatus.style.color = '#27ae60'; caroActive = false;
-        } else {
-            caroStatus.textContent = 'Máy đang nghĩ 3D...'; setTimeout(botCaroMove, 50); 
-        }
-    }
-
-    document.getElementById('btn-caro-reset').onclick = () => {
-        initCaroState(); caroActive = true;
-        caroStatus.textContent = 'Bạn đi trước (Đánh X)'; caroStatus.style.color = '#146c5c';
-        renderCaro();
-        const container = document.querySelector('.caro-container');
-        container.scrollLeft = container.scrollWidth/2 - container.clientWidth/2;
-        container.scrollTop = container.scrollHeight/2 - container.clientHeight/2;
-    };
-
-    initCaroState(); renderCaro();
-    setTimeout(() => { document.getElementById('btn-caro-reset').click(); }, 100);
-  </script>
-</body>
-</html>
+    function updateSingleCell(r, c) {
+        const cell = getEl(`#cell-${r}-${c}`);
+        if(cell) {
+            cell.style.
