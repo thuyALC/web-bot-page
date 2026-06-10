@@ -43,7 +43,7 @@
 
     .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
-    button:active { transform: scale(0.98); }
+    button:button:active { transform: scale(0.98); }
     
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
@@ -61,7 +61,11 @@
     pre.result-box { background: #111827; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; border: 1px solid var(--border-color);}
     .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.2); border-left: 4px solid var(--primary); font-size: 14px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); }
 
-    .riddle-display { font-size: 52px; text-align: center; padding: 28px 10px; margin-bottom: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; letter-spacing: 6px; border: 1px dashed var(--border-color); line-height: 1.4; word-break: break-word; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+    /* Tetris Style Customization */
+    .tetris-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+    canvas#tetris { background: #111827; border: 2px solid #334155; border-radius: 4px; display: block; }
+    .tetris-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; width: 100%; max-width: 240px; }
+    .tetris-controls button { padding: 12px; font-size: 16px; background: #334155; color: white; }
     
     .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
     .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); gap: 1px; background: #334155; width: max-content; padding: 1px; margin: 0 auto; }
@@ -69,14 +73,15 @@
     .caro-cell:hover { background: #1f2937; }
     .win-cell { background: #facc15 !important; color: #0f172a !important; }
 
-    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 12px; } }
   </style>
 </head>
 <body>
   <main>
     <div class="header-title">
       <h1>AI CHAT BOT</h1>
-      <p>Workspace>
+      <p>Workspace Tối Ưu Hóa & Tích Hợp Giải Trí</p>
+    </div>
 
     <div class="grid">
       <div class="card" style="border-top: 3px solid #10b981;">
@@ -110,18 +115,25 @@
 
     <div class="grid">
       <div class="card" style="border-top: 3px solid #f59e0b;">
-        <div class="card-header"><span style="font-size:18px;">🧩</span><h2>Đuổi Hình Bắt Chữ (Local)</h2></div>
-        <div id="game-display" class="riddle-display">❓❔❓</div>
-        <div class="row" style="display:flex; gap:10px; margin-bottom:12px;">
-          <input type="text" id="game-guess" placeholder="Đáp án của bạn..." style="margin-bottom: 0; flex: 1;">
-          <button id="btn-guess" class="btn-primary" style="background: #f59e0b;">Đoán</button>
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🧩</span><h2>Xếp Hình 2D (Tetris Local)</h2>
+          </div>
+          <div id="tetris-score" style="font-weight:bold; color:var(--warning);">Điểm: 0</div>
         </div>
-        <div class="button-group">
-          <button id="btn-new-riddle" class="btn-secondary" style="flex: 1;">Câu hỏi mới</button>
-          <button id="btn-show-answer" class="btn-secondary" style="flex: 1; border-color: var(--danger); color: var(--danger);">Xem đáp án</button>
+        <div class="tetris-container">
+          <canvas id="tetris" width="200" height="360"></canvas>
+          <div class="tetris-controls">
+            <button id="tetris-left">◀</button>
+            <button id="tetris-rotate">🔄</button>
+            <button id="tetris-right">▶</button>
+            <div></div>
+            <button id="tetris-down">▼</button>
+            <div></div>
+          </div>
         </div>
-        <div style="text-align: center; margin-top: 16px;">
-            <div id="game-status" class="badge success" style="font-size:13px; padding: 4px 14px;">Sẵn sàng!</div>
+        <div class="button-group" style="margin-top:12px; justify-content: center;">
+          <button id="btn-tetris-start" class="btn-primary" style="background:#f59e0b; width:100%;">Bắt đầu / Chơi lại</button>
         </div>
       </div>
 
@@ -189,7 +201,7 @@
         };
     })();
 
-    // --- MODULE TÃŒM LYRIC ---
+    // --- MODULE TÌM LYRIC ---
     (() => {
         const searchBtn = document.getElementById("btn-lyric");
         const input = document.getElementById("song-query");
@@ -211,51 +223,200 @@
         };
     })();
 
-    // --- MODULE ĐUỔI HÌNH BẮT CHỮ ---
+    // --- MODULE XẾP HÌNH 2D (TETRIS) ---
     (() => {
-        const riddleDisplay = document.getElementById("game-display");
-        const guessInput = document.getElementById("game-guess");
+        const canvas = document.getElementById("tetris");
+        if (!canvas) return;
+        const context = canvas.getContext("2d");
+        const gridX = 10, gridY = 18, scale = 20;
         
-        if(document.getElementById("btn-new-riddle")) document.getElementById("btn-new-riddle").onclick = async () => {
-            if(riddleDisplay) riddleDisplay.textContent = "⏳";
-            if(guessInput) guessInput.value = "";
-            try {
-                const data = await apiCall("/api/game/riddle", {});
-                if(riddleDisplay) riddleDisplay.textContent = data.emoji;
-                updateBadge("game-status", "Câu hỏi mới!", "success");
-            } catch (err) { updateBadge("game-status", err.message, "error"); }
+        let score = 0;
+        let arena = createMatrix(gridX, gridY);
+        let player = { pos: {x: 0, y: 0}, matrix: null };
+        let dropCounter = 0, dropInterval = 1000, lastTime = 0;
+        let gameRunning = false, rAF_Id = null;
+
+        const colors = [null, '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+        const pieces = 'ILJOTSZ';
+
+        function createMatrix(w, h) {
+            const matrix = [];
+            while (h--) matrix.push(new Array(w).fill(0));
+            return matrix;
+        }
+
+        function createPiece(type) {
+            if (type === 'T') return [[0,0,0],[1,1,1],[0,1,0]];
+            else if (type === 'O') return [[2,2],[2,2]];
+            else if (type === 'L') return [[0,0,3],[3,3,3],[0,0,0]];
+            else if (type === 'J') return [[4,0,0],[4,4,4],[0,0,0]];
+            else if (type === 'I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
+            else if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+            else if (type === 'Z') return [[7,7,0],[0,7,7],[0,0,0]];
+        }
+
+        function draw() {
+            context.fillStyle = '#111827';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            drawMatrix(arena, {x: 0, y: 0});
+            drawMatrix(player.matrix, player.pos);
+        }
+
+        function drawMatrix(matrix, offset) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = colors[value];
+                        context.fillRect((x + offset.x) * scale, (y + offset.y) * scale, scale - 1, scale - 1);
+                    }
+                });
+            });
+        }
+
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        arena[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function arenaSweep() {
+            let rowCount = 1;
+            outer: for (let y = arena.length - 1; y > 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) {
+                    if (arena[y][x] === 0) continue outer;
+                }
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y;
+                score += rowCount * 10;
+                rowCount *= 2;
+            }
+            document.getElementById("tetris-score").textContent = "Điểm: " + score;
+        }
+
+        function playerDrop() {
+            if (!gameRunning) return;
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--;
+                merge(arena, player);
+                playerReset();
+                arenaSweep();
+            }
+            dropCounter = 0;
+        }
+
+        function playerMove(dir) {
+            if (!gameRunning) return;
+            player.pos.x += dir;
+            if (collide(arena, player)) player.pos.x -= dir;
+        }
+
+        function playerReset() {
+            player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+            if (collide(arena, player)) {
+                arena.forEach(row => row.fill(0));
+                score = 0;
+                document.getElementById("tetris-score").textContent = "Điểm: 0";
+                gameRunning = false;
+                alert("Game Over! Bấm chơi lại để phục thù.");
+            }
+        }
+
+        function playerRotate() {
+            if (!gameRunning) return;
+            const pos = player.pos.x;
+            let offset = 1;
+            rotate(player.matrix);
+            while (collide(arena, player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > player.matrix[0].length) {
+                    rotate(player.matrix, -1);
+                    player.pos.x = pos;
+                    return;
+                }
+            }
+        }
+
+        function rotate(matrix, dir = 1) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                }
+            }
+            if (dir > 0) matrix.forEach(row => row.reverse());
+            else matrix.reverse();
+        }
+
+        function update(time = 0) {
+            if (!gameRunning) return;
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) playerDrop();
+            draw();
+            rAF_Id = requestAnimationFrame(update);
+        }
+
+        document.getElementById("btn-tetris-start").onclick = () => {
+            if (rAF_Id) cancelAnimationFrame(rAF_Id);
+            arena = createMatrix(gridX, gridY);
+            score = 0;
+            document.getElementById("tetris-score").textContent = "Điểm: 0";
+            gameRunning = true;
+            playerReset();
+            lastTime = performance.now();
+            update();
         };
 
-        if(document.getElementById("btn-guess")) document.getElementById("btn-guess").onclick = async () => {
-            const guess = guessInput?.value.trim();
-            if (!guess) return;
-            try {
-                const data = await apiCall("/api/game/guess", { guess });
-                updateBadge("game-status", data.message, data.correct ? "success" : "error");
-            } catch (err) { updateBadge("game-status", err.message, "error"); }
-        };
+        document.getElementById("tetris-left").onclick = () => playerMove(-1);
+        document.getElementById("tetris-right").onclick = () => playerMove(1);
+        document.getElementById("tetris-rotate").onclick = () => playerRotate();
+        document.getElementById("tetris-down").onclick = () => playerDrop();
 
-        if(document.getElementById("btn-show-answer")) document.getElementById("btn-show-answer").onclick = async () => {
-            try {
-                const data = await apiCall("/api/game/answer", {});
-                updateBadge("game-status", data.message, "error");
-                if(riddleDisplay) riddleDisplay.textContent = "🙈"; 
-            } catch (err) { updateBadge("game-status", err.message, "error"); }
-        };
-
-        guessInput?.addEventListener("keypress", (e) => { 
-            if (e.key === "Enter") document.getElementById("btn-guess")?.click(); 
+        document.addEventListener('keydown', event => {
+            if (event.keyCode === 37) playerMove(-1);
+            else if (event.keyCode === 39) playerMove(1);
+            else if (event.keyCode === 40) playerDrop();
+            else if (event.keyCode === 38) playerRotate();
         });
+
+        // Vẽ màn hình chờ ban đầu
+        context.fillStyle = '#111827';
+        context.fillRect(0, 0, canvas.width, canvas.height);
     })();
 
-    // --- MODULE CỜ CARO (AI NÂNG CẤP) ---
+    // --- MODULE CỜ CARO (SIÊU TỐC ĐỘ & ĐÁNH CHẶN ĐỦ QUÂN) ---
     (() => {
         const SIZE = 25;
         let caroState = [];
         let caroActive = true;
+        let isBotThinking = false; // Khóa chống trùng lặp luồng, ép bot đánh đủ quân
         const boardEl = document.getElementById("caro-board");
 
-        function initCaroState() { caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill('')); }
+        function initCaroState() { 
+            caroState = Array(SIZE).fill(null).map(() => Array(SIZE).fill('')); 
+            isBotThinking = false;
+        }
 
         function renderCaro() {
             if(!boardEl) return;
@@ -305,7 +466,7 @@
             return false;
         }
 
-        // AI Nâng cấp: Đánh giá mảng liên tục, biết chặn 2 đầu, lấp lỗ hổng
+        // Thuật toán chấm điểm phòng ngự chủ động chính xác cao
         function getScore(r, c, player) {
             const opp = player === 'X' ? 'O' : 'X';
             let score = 0;
@@ -327,19 +488,19 @@
                 }
                 if(r - j*dr < 0 || r - j*dr >= SIZE || c - j*dc < 0 || c - j*dc >= SIZE || caroState[r - j*dr][c - j*dc] === opp) blocks++;
 
-                if(blocks === 2 && consecutive < 5) continue; // Khóa 2 đầu thì bỏ qua
+                if(blocks === 2 && consecutive < 5) continue; // Bị chặn 2 đầu thì vô hại
 
-                if(consecutive >= 5) score += 2000000;
-                else if(consecutive === 4) score += (blocks === 0) ? 500000 : 100000;
-                else if(consecutive === 3) score += (blocks === 0) ? 50000 : 10000;
-                else if(consecutive === 2) score += (blocks === 0) ? 5000 : 500;
-                else if(consecutive === 1) score += (blocks === 0) ? 50 : 5;
+                if(consecutive >= 5) score += 5000000;
+                else if(consecutive === 4) score += (blocks === 0) ? 800000 : 150000;
+                else if(consecutive === 3) score += (blocks === 0) ? 60000 : 15000;
+                else if(consecutive === 2) score += (blocks === 0) ? 6000 : 800;
+                else if(consecutive === 1) score += (blocks === 0) ? 100 : 10;
             }
             return score;
         }
 
         function botMove() {
-            if(!caroActive) return;
+            if(!caroActive) { isBotThinking = false; return; }
             let bestScore = -1;
             let moves = [];
             
@@ -354,14 +515,14 @@
                             let attack = getScore(r, c, 'O');
                             let defense = getScore(r, c, 'X');
                             
-                            // Phân bổ tư duy: Thủ chặt hơn một chút nhưng nếu win thì phải dứt điểm
-                            let total = attack + defense * 1.2; 
+                            // Gia cố điểm phòng ngự (hệ số x1.4) giúp bot phát hiện và chặn nước thâm hiểm của người chơi
+                            let total = attack + defense * 1.4; 
                             
                             if(total > bestScore) {
                                 bestScore = total;
                                 moves = [{r, c}];
                             } else if (total === bestScore) {
-                                moves.push({r, c}); // Thêm vào list nếu điểm bằng nhau để random chọn nước đi
+                                moves.push({r, c});
                             }
                         }
                     }
@@ -377,22 +538,30 @@
                     win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
                     updateBadge("caro-status", "Bot: Khóc đi cưng 😆", "error");
                     caroActive = false;
-                } else updateBadge("caro-status", "Đến lượt bạn (X)", "success");
+                } else {
+                    updateBadge("caro-status", "Đến lượt bạn (X)", "success");
+                }
             }
+            isBotThinking = false; // Giải phóng trạng thái khóa
         }
 
         function handleCaroClick(r, c) {
-            if(caroState[r][c] !== '' || !caroActive) return;
+            if(caroState[r][c] !== '' || !caroActive || isBotThinking) return;
+            
+            isBotThinking = true; // Khóa chặt luồng, ép bot xử lý xong nước này mới chạy nước sau
             caroState[r][c] = 'X';
             updateSingleCell(r, c);
+            
             const win = checkWin(r, c, 'X');
             if(win) {
                 win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
                 updateBadge("caro-status", "Bạn thắng rồi! Đỉnh 🎉", "success");
                 caroActive = false;
+                isBotThinking = false;
             } else {
                 updateBadge("caro-status", "Bot đang tính nước cờ...", "warning");
-                setTimeout(botMove, 80); 
+                // Giảm timeout xuống cực thấp (20ms) để loại bỏ độ trễ, chặn dứt điểm tình trạng hụt quân
+                setTimeout(botMove, 20); 
             }
         }
 
