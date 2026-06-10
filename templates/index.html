@@ -18,6 +18,7 @@
       --danger: #ef4444;
       --warning: #f59e0b;
       --purple: #8b5cf6;
+      --cyan: #0ea5e9;
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
@@ -43,7 +44,7 @@
 
     .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
-    button:button:active { transform: scale(0.98); }
+    button:active { transform: scale(0.98); }
     
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
@@ -117,7 +118,7 @@
       <div class="card" style="border-top: 3px solid #f59e0b;">
         <div class="card-header" style="justify-content: space-between;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:18px;">🧩</span><h2>Xếp Hình 2D (Tetris Local)</h2>
+            <span style="font-size:18px;">🧩</span><h2>Xếp Hình 2D (Tetris)</h2>
           </div>
           <div id="tetris-score" style="font-weight:bold; color:var(--warning);">Điểm: 0</div>
         </div>
@@ -149,6 +150,21 @@
         </div>
         <div class="caro-wrapper">
             <div class="caro-grid" id="caro-board"></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 3px solid #0ea5e9; grid-column: 1 / -1;">
+        <div class="card-header">
+          <span style="font-size:18px;">🔫</span><h2>Counter-Strike 1.6 (Web Server)</h2>
+        </div>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
+          Trải nghiệm trực tiếp huyền thoại bắn súng ngay trên trình duyệt nhờ công nghệ WebAssembly (Xash3D). Máy chủ CDN tải siêu tốc ở lần đầu, lưu cache tải 2s cho lần tiếp theo.
+        </p>
+        <div class="button-group" style="justify-content: center; gap: 16px;">
+          <button id="btn-play-cs" class="btn-primary" style="background: #0ea5e9; padding: 12px 24px; font-size: 16px;">🔥 Vào Server Chơi Ngay</button>
+        </div>
+        <div style="text-align: center; margin-top: 16px;">
+           <span class="badge warning" style="display:inline-flex; padding: 6px 16px; background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b;">⚠️ Yêu cầu sử dụng trên Máy tính (Cần Chuột & Bàn phím)</span>
         </div>
       </div>
     </div>
@@ -410,7 +426,7 @@
         const SIZE = 25;
         let caroState = [];
         let caroActive = true;
-        let isBotThinking = false; // Khóa chống trùng lặp luồng, ép bot đánh đủ quân
+        let isBotThinking = false; // Khóa chống trùng lặp luồng
         const boardEl = document.getElementById("caro-board");
 
         function initCaroState() { 
@@ -466,7 +482,6 @@
             return false;
         }
 
-        // Thuật toán chấm điểm phòng ngự chủ động chính xác cao
         function getScore(r, c, player) {
             const opp = player === 'X' ? 'O' : 'X';
             let score = 0;
@@ -488,7 +503,7 @@
                 }
                 if(r - j*dr < 0 || r - j*dr >= SIZE || c - j*dc < 0 || c - j*dc >= SIZE || caroState[r - j*dr][c - j*dc] === opp) blocks++;
 
-                if(blocks === 2 && consecutive < 5) continue; // Bị chặn 2 đầu thì vô hại
+                if(blocks === 2 && consecutive < 5) continue; 
 
                 if(consecutive >= 5) score += 5000000;
                 else if(consecutive === 4) score += (blocks === 0) ? 800000 : 150000;
@@ -514,8 +529,6 @@
                             
                             let attack = getScore(r, c, 'O');
                             let defense = getScore(r, c, 'X');
-                            
-                            // Gia cố điểm phòng ngự (hệ số x1.4) giúp bot phát hiện và chặn nước thâm hiểm của người chơi
                             let total = attack + defense * 1.4; 
                             
                             if(total > bestScore) {
@@ -542,13 +555,13 @@
                     updateBadge("caro-status", "Đến lượt bạn (X)", "success");
                 }
             }
-            isBotThinking = false; // Giải phóng trạng thái khóa
+            isBotThinking = false; 
         }
 
         function handleCaroClick(r, c) {
             if(caroState[r][c] !== '' || !caroActive || isBotThinking) return;
             
-            isBotThinking = true; // Khóa chặt luồng, ép bot xử lý xong nước này mới chạy nước sau
+            isBotThinking = true; 
             caroState[r][c] = 'X';
             updateSingleCell(r, c);
             
@@ -560,7 +573,6 @@
                 isBotThinking = false;
             } else {
                 updateBadge("caro-status", "Bot đang tính nước cờ...", "warning");
-                // Giảm timeout xuống cực thấp (20ms) để loại bỏ độ trễ, chặn dứt điểm tình trạng hụt quân
                 setTimeout(botMove, 20); 
             }
         }
@@ -577,6 +589,19 @@
         };
 
         initCaroState(); renderCaro();
+    })();
+
+    // --- MODULE COUNTER-STRIKE WEB ---
+    (() => {
+        const btnPlayCS = document.getElementById("btn-play-cs");
+        if(btnPlayCS) {
+            btnPlayCS.onclick = () => {
+                const confirmPlay = confirm("Game sẽ mở trong Tab mới để tối ưu phím bấm & chuột. Sẵn sàng?");
+                if(confirmPlay) {
+                    window.open("https://play-cs.com/", "_blank");
+                }
+            };
+        }
     })();
   </script>
 </body>
