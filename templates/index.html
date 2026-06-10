@@ -3,133 +3,216 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI CHAT BOT Tối Ưu</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>AI CHAT BOT - Premium Workspace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-body: #111827; 
-      --bg-card: #1f2937; 
       --text-main: #f9fafb; 
-      --text-muted: #94a3b8; 
-      --border-color: rgba(255, 255, 255, 0.08); 
-      --primary: #2563eb; 
-      --primary-hover: #1d4ed8;
+      --text-muted: #cbd5e1; 
+      --primary: #3b82f6; 
+      --primary-hover: #2563eb;
       --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
       --purple: #8b5cf6;
       --cyan: #0ea5e9;
       --pink: #d946ef;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+      --glass-bg: rgba(30, 41, 59, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.15);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; padding: 32px 16px; display: flex; justify-content: center; min-height: 100vh;}
-    main { width: 100%; max-width: 1024px; display: flex; flex-direction: column; gap: 24px; }
-
-    .header-title { text-align: center; margin-bottom: 8px; }
-    .header-title h1 { font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em; }
-    .header-title p { color: var(--text-muted); font-size: 15px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
-    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s; position: relative; overflow: hidden;}
-    .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
     
-    .card-header { display: flex; align-items: center; margin-bottom: 16px; gap: 8px; }
-    .card-header h2 { font-size: 18px; font-weight: 600; color: #ffffff; }
+    /* 1. NỀN 3D CÓ CHIỀU SÂU VÀ ORB CHUYỂN ĐỘNG */
+    body { 
+        background-color: #020617; 
+        color: var(--text-main); 
+        line-height: 1.5; 
+        padding: 40px 16px; 
+        display: flex; 
+        justify-content: center; 
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* Các khối sáng chuyển động tạo chiều sâu */
+    .bg-orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        pointer-events: none;
+        animation: floatOrb 25s infinite alternate ease-in-out;
+        opacity: 0.5;
+    }
+    .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #2563eb; }
+    .orb-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #8b5cf6; animation-delay: -5s; animation-duration: 30s;}
+    .orb-3 { top: 30%; left: 30%; width: 40vw; height: 40vw; background: #0ea5e9; animation-delay: -15s; opacity: 0.3;}
+
+    @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(5vw, 10vh) scale(1.2); }
+        100% { transform: translate(-5vw, -5vh) scale(0.9); }
+    }
+
+    main { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 28px; z-index: 1;}
+
+    .header-title { text-align: center; margin-bottom: 12px; }
+    .header-title h1 { font-size: 36px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em; text-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-bottom: 8px;}
+    .header-title p { color: var(--text-muted); font-size: 16px; font-weight: 300; letter-spacing: 1px;}
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 28px; }
     
-    textarea, input[type="text"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #2c3e50; color: #ffffff; transition: all 0.2s; outline: none; margin-bottom: 12px; }
-    textarea:focus, input[type="text"]:focus { border-color: var(--primary); background: #1f2937; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
-    textarea { min-height: 80px; resize: vertical; }
+    /* 2. HIỆU ỨNG THẺ KÍNH (GLASSMORPHISM) */
+    .card { 
+        background: var(--glass-bg); 
+        backdrop-filter: blur(16px); 
+        -webkit-backdrop-filter: blur(16px); 
+        border: 1px solid var(--glass-border); 
+        border-radius: 16px; 
+        padding: 28px; 
+        box-shadow: var(--glass-shadow); 
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; 
+        position: relative; 
+        overflow: hidden;
+    }
+    .card::before { /* Lớp phủ sương mờ siêu mỏng */
+        content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%); z-index: 0; pointer-events: none;
+    }
+    .card > * { position: relative; z-index: 1; }
+    .card:hover { 
+        transform: translateY(-4px); 
+        box-shadow: 0 15px 45px rgba(0,0,0,0.5); 
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-header { display: flex; align-items: center; margin-bottom: 20px; gap: 10px; }
+    .card-header h2 { font-size: 20px; font-weight: 600; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5);}
+    
+    textarea, input[type="text"] { 
+        width: 100%; padding: 14px 18px; 
+        border: 1px solid rgba(255, 255, 255, 0.2); 
+        border-radius: 10px; font-size: 15px; 
+        background: rgba(15, 23, 42, 0.6); 
+        color: #ffffff; transition: all 0.3s; 
+        outline: none; margin-bottom: 16px; 
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    }
+    textarea:focus, input[type="text"]:focus { 
+        background: rgba(15, 23, 42, 0.9); 
+        border-color: var(--primary); 
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 2px 4px rgba(0,0,0,0.3); 
+    }
+    textarea { min-height: 90px; resize: vertical; }
 
     .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; }
-    button:active { transform: scale(0.98); }
+    button { 
+        display: inline-flex; align-items: center; justify-content: center; 
+        padding: 12px 22px; font-size: 15px; font-weight: 600; 
+        border-radius: 10px; border: none; cursor: pointer; 
+        transition: all 0.2s; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    button:active { transform: scale(0.96); box-shadow: 0 2px 6px rgba(0,0,0,0.2);}
     
     .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #334155; color: #e2e8f0; border: 1px solid var(--border-color); }
-    .btn-secondary:hover { background: #475569; }
+    .btn-primary:hover { filter: brightness(1.15); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+    .btn-secondary { background: rgba(51, 65, 85, 0.8); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); }
+    .btn-secondary:hover { background: rgba(71, 85, 105, 0.9); border-color: rgba(255,255,255,0.3);}
 
     label.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
-    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
 
-    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; display: none; }
-    .badge.success { background: #059669; color: #ffffff; display: inline-flex; }
-    .badge.error { background: #dc2626; color: #ffffff; display: inline-flex; }
-    .badge.warning { background: #d97706; color: #ffffff; display: inline-flex; }
+    .badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);}
+    .badge.success { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; display: inline-flex; }
+    .badge.error { background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; display: inline-flex; }
+    .badge.warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; display: inline-flex; }
 
-    pre.result-box { background: #111827; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto; min-height: 100px; margin: 0; border: 1px solid var(--border-color);}
-    .output-box { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.2); border-left: 4px solid var(--primary); font-size: 14px; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); }
+    pre.result-box { 
+        background: rgba(15, 23, 42, 0.7); color: #e2e8f0; 
+        padding: 24px; border-radius: 12px; 
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace; 
+        font-size: 14px; line-height: 1.7; white-space: pre-wrap; 
+        overflow-x: auto; min-height: 120px; margin: 0; 
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: inset 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .output-box { display: none; margin-top: 16px; padding: 18px; border-radius: 10px; background: rgba(0,0,0,0.4); border-left: 4px solid var(--primary); font-size: 15px; line-height: 1.8; white-space: pre-wrap; max-height: 400px; overflow-y: auto; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);}
 
-    /* Tetris Style Customization */
-    .tetris-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
-    canvas#tetris { background: #111827; border: 2px solid #334155; border-radius: 4px; display: block; }
-    .tetris-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; width: 100%; max-width: 240px; }
-    .tetris-controls button { padding: 12px; font-size: 16px; background: #334155; color: white; }
+    /* Tetris 3D Depth */
+    .tetris-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 4px 12px rgba(0,0,0,0.5);}
+    canvas#tetris { background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255,255,255,0.1); border-radius: 6px; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
+    .tetris-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; width: 100%; max-width: 240px; }
+    .tetris-controls button { padding: 14px; font-size: 18px; background: rgba(51, 65, 85, 0.8); color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;}
     
-    .caro-wrapper { margin-top: 16px; max-width: 100%; max-height: 400px; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
-    .caro-grid { display: grid; grid-template-columns: repeat(25, 36px); gap: 1px; background: #334155; width: max-content; padding: 1px; margin: 0 auto; }
-    .caro-cell { width: 36px; height: 36px; background: #111827; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; cursor: pointer; user-select: none; transition: background 0.1s; }
-    .caro-cell:hover { background: #1f2937; }
-    .win-cell { background: #facc15 !important; color: #0f172a !important; }
+    /* Caro 3D Depth */
+    .caro-wrapper { margin-top: 20px; max-width: 100%; max-height: 420px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(15, 23, 42, 0.8); padding: 10px; box-shadow: inset 0 4px 15px rgba(0,0,0,0.6);}
+    .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 2px; background: rgba(255,255,255,0.05); width: max-content; margin: 0 auto; }
+    .caro-cell { width: 38px; height: 38px; background: rgba(30, 41, 59, 0.9); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; cursor: pointer; user-select: none; transition: all 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+    .caro-cell:hover { background: rgba(51, 65, 85, 1); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2;}
+    .win-cell { background: linear-gradient(135deg, #facc15, #f59e0b) !important; color: #0f172a !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6) !important; transform: scale(1.1); z-index: 3;}
 
-    /* HACK MENU STYLES */
+    /* Hack Menu 3D */
     #hack-menu-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
-    #btn-toggle-hack { width: 56px; height: 56px; border-radius: 50%; background: #dc2626; color: white; font-size: 24px; border: 3px solid #7f1d1d; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-    #btn-toggle-hack:hover { transform: scale(1.1) rotate(15deg); background: #ef4444; }
-    #hack-panel { display: none; position: absolute; bottom: 70px; right: 0; background: rgba(15, 23, 42, 0.95); border: 2px solid #ef4444; border-radius: 12px; padding: 16px; width: 260px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-    .hack-btn { width: 100%; margin-bottom: 8px; padding: 10px; border-radius: 6px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); text-align: left; transition: 0.2s;}
-    .hack-btn:hover { filter: brightness(1.2); padding-left: 15px; }
+    #btn-toggle-hack { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #dc2626, #991b1b); color: white; font-size: 26px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 10px 25px rgba(220, 38, 38, 0.5); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px);}
+    #btn-toggle-hack:hover { transform: scale(1.15) rotate(15deg); box-shadow: 0 15px 35px rgba(220, 38, 38, 0.7); }
+    #hack-panel { display: none; position: absolute; bottom: 80px; right: 0; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 16px; padding: 20px; width: 280px; box-shadow: 0 15px 40px rgba(0,0,0,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);}
+    .hack-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); text-align: left; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+    .hack-btn:hover { filter: brightness(1.2); padding-left: 18px; border-color: rgba(255,255,255,0.3);}
 
-    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 12px; } #hack-menu-container { bottom: 15px; right: 15px; } }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 20px 12px; } #hack-menu-container { bottom: 20px; right: 20px; } }
   </style>
 </head>
 <body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
   <main>
     <div class="header-title">
-      <h1>AI CHAT BOT</h1>
-      <p>Workspace Tối Ưu Hóa & Tích Hợp Giải Trí</p>
+      <h1>HỆ THỐNG WORKSPACE PREMIUM</h1>
+      <p>Trí Tuệ Nhân Tạo & Không Gian Giải Trí Tối Tối Ưu</p>
     </div>
 
     <div class="grid">
-      <div class="card" style="border-top: 3px solid #10b981;">
-        <div class="card-header"><span style="font-size:18px;">💬</span><h2>Chat AI (Gemini + ALL-Agent)</h2></div>
-        <textarea id="message" placeholder="Hỏi tôi bất cứ điều gì..."></textarea>
+      <div class="card" style="border-top: 4px solid #10b981;">
+        <div class="card-header"><span style="font-size:22px;">💬</span><h2>Chat AI (Gemini + Agents)</h2></div>
+        <textarea id="message" placeholder="Triển khai lệnh hoặc đặt câu hỏi..."></textarea>
         <div class="button-group">
-          <button id="send" class="btn-primary" style="background: #10b981;">Gửi yêu cầu</button>
-          <button id="clear" class="btn-secondary">Làm mới</button>
+          <button id="send" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">Gửi lệnh thực thi</button>
+          <button id="clear" class="btn-secondary">Làm mới bộ nhớ</button>
           <label class="checkbox-label"><input id="search" type="checkbox" checked> Chế độ Online</label>
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid #8b5cf6;">
-        <div class="card-header"><span style="font-size:18px;">🎵</span><h2>Tìm Lời Bài Hát (Lyric)</h2></div>
-        <input type="text" id="song-query" placeholder="Nhập tên bài hoặc 1 câu hát...">
+      <div class="card" style="border-top: 4px solid #8b5cf6;">
+        <div class="card-header"><span style="font-size:22px;">🎵</span><h2>Tìm Kiếm Lời Bài Hát</h2></div>
+        <input type="text" id="song-query" placeholder="Nhập tên bài hoặc 1 đoạn lyric...">
         <div class="button-group">
-          <button id="btn-lyric" class="btn-primary" style="background: #8b5cf6;">Tìm Lyric</button>
+          <button id="btn-lyric" class="btn-primary" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">Trích xuất Lyric</button>
         </div>
-        <div id="lyric-status" class="badge" style="margin-top: 12px; margin-bottom: 0;"></div>
+        <div id="lyric-status" class="badge" style="margin-top: 14px; margin-bottom: 0;"></div>
         <div id="lyric-output" class="output-box" style="border-left-color: #8b5cf6;"></div>
       </div>
     </div>
 
-    <div class="card" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-md);">
-      <div style="padding: 10px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-size: 15px; margin: 0; border:none; padding:0;">Kết quả truy vấn</h2>
+    <div class="card" style="padding: 0; box-shadow: var(--glass-shadow); border-top: 4px solid #3b82f6;">
+      <div style="padding: 14px 24px; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 16px; font-weight: 600; margin: 0; letter-spacing: 0.5px;">KẾT QUẢ TRUY VẤN TỪ TERMINAL</h2>
         <div id="chat-status" class="badge"></div>
       </div>
-      <pre id="result" class="result-box">Hệ thống sẵn sàng.</pre>
+      <pre id="result" class="result-box" style="border:none; border-radius: 0 0 16px 16px;">[System] Khởi động thành công. Đang chờ lệnh từ người dùng...</pre>
     </div>
 
     <div class="grid">
-      <div class="card" style="border-top: 3px solid #f59e0b;">
+      <div class="card" style="border-top: 4px solid #f59e0b;">
         <div class="card-header" style="justify-content: space-between;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:18px;">🧩</span><h2>Xếp Hình 2D (Tetris)</h2>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">🧩</span><h2>Xếp Hình 2D (Tetris)</h2>
           </div>
-          <div id="tetris-score" style="font-weight:bold; color:var(--warning);">Điểm: 0</div>
+          <div id="tetris-score" style="font-size: 16px; font-weight:700; color:#fcd34d; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Điểm: 0</div>
         </div>
         <div class="tetris-container">
           <canvas id="tetris" width="200" height="360"></canvas>
@@ -142,47 +225,47 @@
             <div></div>
           </div>
         </div>
-        <div class="button-group" style="margin-top:12px; justify-content: center;">
-          <button id="btn-tetris-start" class="btn-primary" style="background:#f59e0b; width:100%;">Bắt đầu / Chơi lại</button>
+        <div class="button-group" style="margin-top:16px; justify-content: center;">
+          <button id="btn-tetris-start" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); width:100%;">Bắt đầu / Chơi lại</button>
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid #ef4444;">
+      <div class="card" style="border-top: 4px solid #ef4444;">
         <div class="card-header" style="justify-content: space-between;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">⭕</span><h2>Cờ Caro (Bot Khó)</h2>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:22px;">⭕</span><h2>Cờ Caro (AI Cấp Cao)</h2>
             </div>
-            <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px; padding: 4px 14px;">Bạn đi trước (X)</div>
+            <div id="caro-status" class="badge success" style="margin: 0; font-size: 14px;">Bạn đi trước (X)</div>
         </div>
         <div class="button-group" style="justify-content: center;">
-          <button id="btn-caro-reset" class="btn-secondary">Đầu hàng / Ván mới</button>
+          <button id="btn-caro-reset" class="btn-secondary">Đầu hàng / Reset Ván</button>
         </div>
         <div class="caro-wrapper">
             <div class="caro-grid" id="caro-board"></div>
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid #0ea5e9; grid-column: 1 / -1;">
+      <div class="card" style="border-top: 4px solid #0ea5e9; grid-column: 1 / -1;">
         <div class="card-header">
-          <span style="font-size:18px;">🔫</span><h2>Counter-Strike 1.6 (Web Server)</h2>
+          <span style="font-size:24px;">🔫</span><h2>Counter-Strike 1.6 (Web Server)</h2>
         </div>
-        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
-          Trải nghiệm trực tiếp huyền thoại bắn súng ngay trên trình duyệt nhờ công nghệ WebAssembly (Xash3D). Máy chủ CDN tải siêu tốc ở lần đầu, lưu cache tải 2s cho lần tiếp theo.
+        <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+          Trải nghiệm bắn súng góc nhìn thứ nhất với đồ họa 3D nguyên bản nhờ sức mạnh WebAssembly. CDN tải siêu tốc, hỗ trợ cache ổ cứng load 2s cho lần tiếp theo.
         </p>
         <div class="button-group" style="justify-content: center; gap: 16px;">
-          <button id="btn-play-cs" class="btn-primary" style="background: #0ea5e9; padding: 12px 24px; font-size: 16px;">🔥 Vào Server Chơi Ngay</button>
+          <button id="btn-play-cs" class="btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 14px 28px; font-size: 16px; box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4);">🔥 Kết nối máy chủ CS 1.6</button>
         </div>
       </div>
 
-      <div class="card" style="border-top: 3px solid #d946ef; grid-column: 1 / -1;">
+      <div class="card" style="border-top: 4px solid #d946ef; grid-column: 1 / -1;">
         <div class="card-header">
-          <span style="font-size:18px;">🐲</span><h2>Gunbound Web (DragonBound)</h2>
+          <span style="font-size:24px;">🐲</span><h2>Gunbound Web (DragonBound)</h2>
         </div>
-        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
-          Sống lại huyền thoại bắn tọa độ Gunbound cổ điển. Gió, lốc, xe Boomer, Aduka... tái hiện 100% trên nền tảng Web siêu mượt.
+        <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+          Ký ức tuổi thơ bắn tọa độ Gunbound Thor's Hammer tái sinh hoàn hảo. Vật lý gió, lốc xoáy, xe Boomer hoạt động chính xác 100%. Tương thích màn hình cảm ứng điện thoại.
         </p>
         <div class="button-group" style="justify-content: center; gap: 16px;">
-          <button id="btn-play-gunbound" class="btn-primary" style="background: #d946ef; padding: 12px 24px; font-size: 16px; box-shadow: 0 4px 14px rgba(217, 70, 239, 0.4);">🚀 Khởi Động Trận Chiến</button>
+          <button id="btn-play-gunbound" class="btn-primary" style="background: linear-gradient(135deg, #d946ef, #c026d3); padding: 14px 28px; font-size: 16px; box-shadow: 0 6px 15px rgba(217, 70, 239, 0.4);">🚀 Khởi Động Trận Chiến Gunbound</button>
         </div>
       </div>
     </div>
@@ -190,10 +273,10 @@
 
   <div id="hack-menu-container">
     <div id="hack-panel">
-      <h3 style="color:#ef4444; margin-top:0; border-bottom: 1px solid #ef4444; padding-bottom: 8px;">🛑 MENU MA GIÁO</h3>
+      <h3 style="color:#fca5a5; margin-top:0; border-bottom: 1px solid rgba(239,68,68,0.3); padding-bottom: 12px; margin-bottom: 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">🛑 MENU MA GIÁO</h3>
       <button id="hack-tetris-clear" class="hack-btn" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">🧩 Tetris: Xóa 4 dòng đáy</button>
       <button id="hack-tetris-slow" class="hack-btn" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">🐢 Tetris: Chậm x5</button>
-      <button id="hack-caro-clear" class="hack-btn" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5;">⭕ Caro: Xóa hết cờ Bot</button>
+      <button id="hack-caro-clear" class="hack-btn" style="background: rgba(239, 68, 68, 0.25); color: #fca5a5;">⭕ Caro: Tẩy sạch cờ Bot</button>
       <button id="hack-online" class="hack-btn" style="background: rgba(217, 70, 239, 0.2); color: #f0abfc;">💥 Hack Gunbound / CS</button>
     </div>
     <button id="btn-toggle-hack">🛠️</button>
@@ -221,7 +304,7 @@
         panel.style.display = panel.style.display === "block" ? "none" : "block";
     };
     document.getElementById("hack-online").onclick = () => {
-        alert("CẢNH BÁO: CS 1.6 và Gunbound là Game Server quốc tế có Anti-Cheat cực mạnh. Web browser không thể chích mã XSS vào iFrame được. Cố tình tìm tool chèn vào là bay màu IP đó ba!");
+        alert("CẢNH BÁO TỪ HỆ THỐNG: CS 1.6 và Gunbound là Game Server quốc tế có Anti-Cheat cực mạnh. Trình duyệt không cho phép chích mã XSS vào iFrame. Tìm cách chèn tool bên thứ 3 là bay màu IP vĩnh viễn đó ba!");
     };
 
     // --- MODULE CHAT AI ---
@@ -234,8 +317,8 @@
         if(sendBtn) sendBtn.onclick = async () => {
             const msg = input?.value.trim();
             if (!msg) return;
-            updateBadge("chat-status", "⏳ Đang gọi AI...", "warning");
-            result.textContent = "Hệ thống đang xử lý...";
+            updateBadge("chat-status", "⏳ Đang phân tích...", "warning");
+            result.textContent = "[Đang chạy luồng suy nghĩ & quét dữ liệu mạng...]";
             try {
                 const search = document.getElementById("search")?.checked;
                 const data = await apiCall("/api/chat", { message: msg, search });
@@ -243,7 +326,7 @@
                 result.textContent = data.reply;
             } catch (err) { 
                 updateBadge("chat-status", "Mất kết nối", "error");
-                result.textContent = "⚠️ " + err.message; 
+                result.textContent = "⚠️ Lỗi hệ thống: " + err.message; 
             }
         };
 
@@ -251,7 +334,7 @@
             await apiCall("/api/clear", {});
             input.value = "";
             document.getElementById("chat-status").style.display = "none";
-            result.textContent = "Phiên trò chuyện đã được làm mới.";
+            result.textContent = "[System] Bộ nhớ đệm đã được dọn dẹp sạch sẽ.";
         };
     })();
 
@@ -263,14 +346,14 @@
         
         if(searchBtn) searchBtn.onclick = async () => {
             const query = input?.value.trim();
-            if (!query) { updateBadge("lyric-status", "Vui lòng nhập từ khóa.", "error"); return; }
-            updateBadge("lyric-status", "Đang tra cứu...", "warning");
+            if (!query) { updateBadge("lyric-status", "Yêu cầu nhập từ khóa", "error"); return; }
+            updateBadge("lyric-status", "Đang tra cứu cơ sở dữ liệu...", "warning");
             output.style.display = "none";
             try {
                 const data = await apiCall("/api/get_lyrics", { query });
                 output.textContent = data.lyrics; 
                 output.style.display = "block";
-                updateBadge("lyric-status", "Hoàn tất", "success");
+                updateBadge("lyric-status", "Trích xuất hoàn tất", "success");
             } catch (err) { 
                 updateBadge("lyric-status", err.message, "error");
             }
@@ -310,7 +393,7 @@
         }
 
         function draw() {
-            context.fillStyle = '#111827';
+            context.fillStyle = 'rgba(15, 23, 42, 0.9)';
             context.fillRect(0, 0, canvas.width, canvas.height);
             drawMatrix(arena, {x: 0, y: 0});
             drawMatrix(player.matrix, player.pos);
@@ -322,6 +405,8 @@
                     if (value !== 0) {
                         context.fillStyle = colors[value];
                         context.fillRect((x + offset.x) * scale, (y + offset.y) * scale, scale - 1, scale - 1);
+                        context.strokeStyle = 'rgba(0,0,0,0.3)';
+                        context.strokeRect((x + offset.x) * scale, (y + offset.y) * scale, scale - 1, scale - 1);
                     }
                 });
             });
@@ -392,7 +477,7 @@
                 document.getElementById("tetris-score").textContent = "Điểm: 0";
                 gameRunning = false;
                 dropInterval = 1000;
-                alert("Game Over! Bấm chơi lại để phục thù.");
+                alert("Nhiệm vụ thất bại! Khối đã chạm nóc nhà.");
             }
         }
 
@@ -447,17 +532,16 @@
         // GẮN HACK CHO TETRIS
         document.getElementById("hack-tetris-clear").onclick = () => {
             if(!gameRunning) return;
-            // Xóa 4 dòng cuối, thêm 4 dòng trống lên đầu
             for(let i=0; i<4; i++) {
                 arena.pop();
                 arena.unshift(new Array(gridX).fill(0));
             }
             draw();
-            alert("Hack thành công: Đã thổi bay 4 dòng đáy!");
+            alert("Đã kích hoạt gian lận: 4 dòng móng nhà đã bị thổi bay!");
         };
         document.getElementById("hack-tetris-slow").onclick = () => {
-            dropInterval = 5000; // Siêu chậm
-            alert("Hack thành công: Block rơi siêu chậm (5 giây/nấc)!");
+            dropInterval = 5000; 
+            alert("Đã kích hoạt Hack Time: Khối rơi chậm như rùa (5s/nấc)!");
         };
 
         document.getElementById("tetris-left").onclick = () => playerMove(-1);
@@ -465,12 +549,11 @@
         document.getElementById("tetris-rotate").onclick = () => playerRotate();
         document.getElementById("tetris-down").onclick = () => playerDrop();
         
-        // Vẽ màn hình chờ ban đầu
-        context.fillStyle = '#111827';
+        context.fillStyle = 'rgba(15, 23, 42, 0.9)';
         context.fillRect(0, 0, canvas.width, canvas.height);
     })();
 
-    // --- MODULE CỜ CARO (SIÊU TỐC ĐỘ & ĐÁNH CHẶN ĐỦ QUÂN) ---
+    // --- MODULE CỜ CARO (AI CHẶN THÔNG MINH) ---
     (() => {
         const SIZE = 25;
         let caroState = [];
@@ -493,7 +576,7 @@
                     div.id = `cell-${r}-${c}`;
                     if (caroState[r][c] !== "") {
                         div.textContent = caroState[r][c];
-                        div.style.color = caroState[r][c] === 'X' ? '#2563eb' : '#ef4444';
+                        div.style.color = caroState[r][c] === 'X' ? '#60a5fa' : '#f87171'; // Màu neon sáng
                     }
                     div.addEventListener('click', () => handleCaroClick(r, c));
                     boardEl.appendChild(div);
@@ -505,7 +588,7 @@
             const cell = document.getElementById(`cell-${r}-${c}`);
             if(cell) {
                 cell.textContent = caroState[r][c];
-                cell.style.color = caroState[r][c] === 'X' ? '#2563eb' : '#ef4444';
+                cell.style.color = caroState[r][c] === 'X' ? '#60a5fa' : '#f87171';
             }
         }
 
@@ -598,7 +681,7 @@
                 const win = checkWin(move.r, move.c, 'O');
                 if(win) {
                     win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
-                    updateBadge("caro-status", "Bot: Khóc đi cưng 😆", "error");
+                    updateBadge("caro-status", "AI đã hạ gục bạn 😆", "error");
                     caroActive = false;
                 } else {
                     updateBadge("caro-status", "Đến lượt bạn (X)", "success");
@@ -617,18 +700,18 @@
             const win = checkWin(r, c, 'X');
             if(win) {
                 win.forEach(([wr,wc]) => document.getElementById(`cell-${wr}-${wc}`).classList.add("win-cell"));
-                updateBadge("caro-status", "Bạn thắng rồi! Đỉnh 🎉", "success");
+                updateBadge("caro-status", "Vinh quang thuộc về bạn 🎉", "success");
                 caroActive = false;
                 isBotThinking = false;
             } else {
-                updateBadge("caro-status", "Bot đang tính nước cờ...", "warning");
+                updateBadge("caro-status", "Hệ thống AI đang tính toán...", "warning");
                 setTimeout(botMove, 20); 
             }
         }
 
         if(document.getElementById("btn-caro-reset")) document.getElementById("btn-caro-reset").onclick = () => {
             initCaroState(); caroActive = true;
-            updateBadge("caro-status", "Bạn đi trước (X)", "success");
+            updateBadge("caro-status", "Bạn cầm cờ X, đi trước", "success");
             renderCaro();
             const wrapper = document.querySelector('.caro-wrapper');
             if(wrapper) {
@@ -642,13 +725,11 @@
             if(!caroActive) return;
             for(let r=0; r<SIZE; r++){
                 for(let c=0; c<SIZE; c++){
-                    if(caroState[r][c] === 'O') {
-                        caroState[r][c] = ''; // Xóa sạch cờ của Bot
-                    }
+                    if(caroState[r][c] === 'O') caroState[r][c] = ''; 
                 }
             }
             renderCaro();
-            alert("Hack thành công: Đã nhổ sạch cờ của con Bot!");
+            alert("Hack hoàn tất: Toàn bộ cờ phòng ngự của AI đã bốc hơi!");
         };
 
         initCaroState(); renderCaro();
@@ -659,14 +740,14 @@
         const btnPlayCS = document.getElementById("btn-play-cs");
         if(btnPlayCS) {
             btnPlayCS.onclick = () => {
-                const confirmPlay = confirm("Game sẽ mở trong Tab mới để tối ưu phím bấm & chuột. Sẵn sàng?");
+                const confirmPlay = confirm("Hệ thống sẽ mở máy chủ CS 1.6 trong Tab mới để bắt chuột và phím. Tiến hành?");
                 if(confirmPlay) window.open("https://play-cs.com/", "_blank");
             };
         }
         const btnPlayGB = document.getElementById("btn-play-gunbound");
         if(btnPlayGB) {
             btnPlayGB.onclick = () => {
-                const confirmGB = confirm("Hệ thống sẽ chuyển bạn đến máy chủ DragonBound. Hãy chọn Play as Guest để quẩy ngay!");
+                const confirmGB = confirm("Đang điều hướng đến máy chủ DragonBound (Gunbound Web). Khuyên dùng Play as Guest để truy cập tức thì!");
                 if(confirmGB) window.open("https://dragonbound.net/", "_blank");
             };
         }
