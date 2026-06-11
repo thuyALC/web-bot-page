@@ -291,62 +291,94 @@ def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
     except Exception as exc:
         return ai_fallback(user_message, f"Lỗi kết nối Gemini: {exc}")
 
-# ── GAME CÀO DỮ LIỆU TỪ WIKIPEDIA (MỚI) ──────────────────────────────────────
-FALLBACK_SCRAMBLE = [
-    {"title": "PROXY", "meaning": "Một hệ thống máy chủ trung gian giúp ẩn danh hoặc định tuyến lại lưu lượng mạng."},
-    {"title": "EXCEL", "meaning": "Phần mềm bảng tính dùng để quản lý dữ liệu, xuất nhập tồn kho và sử dụng các hàm tính toán."},
-    {"title": "MAGISK", "meaning": "Một công cụ mạnh mẽ mã nguồn mở được sử dụng để can thiệp quyền hệ thống (root) trên thiết bị Android."},
-    {"title": "GEMINI", "meaning": "Một mô hình ngôn ngữ lớn, trí tuệ nhân tạo có thể trò chuyện và xử lý dữ liệu thông minh."}
-]
+# ── GAME 1: GIẢI MÃ KÝ TỰ (SCRAMBLE) TỪ AI ────────────────────────────────────
+FALLBACK_SCRAMBLE = {
+    "dễ": [
+        {"chu_de": "Động vật", "goi_y": "Loài vật thân thiết giữ nhà cho con người", "dap_an": "CON CHÓ"},
+        {"chu_de": "Đồ vật", "goi_y": "Dùng để che mưa che nắng khi đi bộ", "dap_an": "CÁI Ô"}
+    ],
+    "trung bình": [
+        {"chu_de": "Công nghệ", "goi_y": "Hệ điều hành di động mở của Google", "dap_an": "ANDROID"},
+        {"chu_de": "Thể thao", "goi_y": "Môn thể thao vua được yêu thích nhất thế giới", "dap_an": "BÓNG ĐÁ"}
+    ],
+    "khó": [
+        {"chu_de": "Vật lý", "goi_y": "Lực hút vạn vật về phía tâm Trái Đất", "dap_an": "TRỌNG LỰC"},
+        {"chu_de": "Y khoa", "goi_y": "Loại thuốc đặc trị dùng để tiêu diệt vi khuẩn", "dap_an": "KHÁNG SINH"}
+    ]
+}
 
-def scrape_wikipedia_word():
-    for _ in range(5):
-        try:
-            res = requests.get("https://vi.wikipedia.org/wiki/Đặc_biệt:Ngẫu_nhiên", timeout=5)
-            soup = BeautifulSoup(res.text, "html.parser")
-            
-            title_element = soup.find("h1", id="firstHeading")
-            if not title_element: continue
-            title = title_element.text
-            
-            meaning = ""
-            paragraphs = soup.select(".mw-parser-output > p")
-            for p in paragraphs:
-                text = p.text.strip()
-                if len(text) > 30:
-                    meaning = text
-                    break
-                    
-            clean_title = re.sub(r'\(.*?\)', '', title).strip()
-            
-            # Chỉ lấy từ khóa ngắn gọn
-            if 3 <= len(clean_title) <= 20 and meaning:
-                return {"title": clean_title, "meaning": meaning}
-        except:
-            continue
-            
-    return random.choice(FALLBACK_SCRAMBLE)
-
-@app.route("/api/game/scramble", methods=["GET"])
+@app.route("/api/game/scramble", methods=["POST"])
 def game_scramble():
-    data = scrape_wikipedia_word()
-    dap_an_goc = data['title'].upper()
-    goi_y = data['meaning']
-    
-    # Che đáp án trong phần gợi ý để không bị lộ
-    goi_y_da_che = re.sub(re.escape(data['title']), "___", goi_y, flags=re.IGNORECASE)
-    
+    payload = request.get_json(force=True) or {}
+    difficulty = payload.get("difficulty", "trung bình").lower()
+
+    prompt = f"""Hãy làm một chuyên gia tạo câu đố trò chơi đoán chữ tiếng Việt.
+    Độ khó yêu cầu: {difficulty} (Dễ: 3-5 chữ cái; Trung bình: 6-8 chữ cái; Khó: 9+ chữ cái).
+    CHỈ TRẢ VỀ ĐÚNG 1 OBJECT JSON, KHÔNG BỌC TRONG CODE BLOCK, KHÔNG GIẢI THÍCH:
+    {{"chu_de": "tên chủ đề ngắn gọn", "goi_y": "câu gợi ý nghĩa (KHÔNG chứa từ khóa)", "dap_an": "TỪ KHÓA VIẾT HOA"}}
+    """
+    reply, _ = ask_ai(prompt, use_search=False)
+    data_qa = None
+    try:
+        match = re.search(r'\{.*\}', reply, re.DOTALL)
+        if match:
+            data_qa = json.loads(match.group(0))
+    except:
+        pass
+
+    if not data_qa or "dap_an" not in data_qa:
+        data_qa = random.choice(FALLBACK_SCRAMBLE.get(difficulty, FALLBACK_SCRAMBLE["trung bình"]))
+
+    dap_an_goc = data_qa['dap_an'].upper()
+    goi_y_da_che = re.sub(re.escape(dap_an_goc), "___", data_qa['goi_y'], flags=re.IGNORECASE)
     dap_an_khong_khoang_trang = dap_an_goc.replace(" ", "")
     chu_cai_xao_tron = list(dap_an_khong_khoang_trang)
     random.shuffle(chu_cai_xao_tron)
-    
+
     return jsonify({
-        "chu_de": "Bách khoa toàn thư (Wikipedia)",
-        "goi_y": goi_y_da_che,
-        "dap_an": dap_an_goc,
-        "so_luong": len(dap_an_khong_khoang_trang),
-        "xao_tron": chu_cai_xao_tron
+        "chu_de": data_qa['chu_de'], "goi_y": goi_y_da_che, "dap_an": dap_an_goc,
+        "so_luong": len(dap_an_khong_khoang_trang), "xao_tron": chu_cai_xao_tron
     })
+
+# ── GAME 2: CÂU ĐỐ TRÍ TUỆ (RIDDLE) TỪ AI ────────────────────────────────────
+FALLBACK_RIDDLES = {
+    "dễ": [
+        {"cau_do": "Bỏ ngoài nướng trong, ăn ngoài bỏ trong là bắp gì?", "dap_an": "Bắp ngô"},
+        {"cau_do": "Cái gì đen khi bạn mua nó, đỏ khi dùng nó và xám xịt khi vứt nó đi?", "dap_an": "Than củi"},
+    ],
+    "trung bình": [
+        {"cau_do": "Có răng mà chẳng có mồm, nhai cỏ nhồn nhồn cơm chẳng chịu ăn. Là cái gì?", "dap_an": "Cái liềm"},
+        {"cau_do": "Mặt tròn mặt lại đỏ gay, ai nhìn cũng phải nhíu mày chê bai. Là gì?", "dap_an": "Mặt trời"}
+    ],
+    "khó": [
+        {"cau_do": "Cái gì đập thì sống, không đập thì chết?", "dap_an": "Trái tim"},
+        {"cau_do": "Bệnh gì bác sĩ bó tay?", "dap_an": "Gãy tay"}
+    ]
+}
+
+@app.route("/api/game/riddle", methods=["POST"])
+def game_riddle():
+    payload = request.get_json(force=True) or {}
+    difficulty = payload.get("difficulty", "trung bình").lower()
+
+    prompt = f"""Hãy làm một chuyên gia tạo câu đố mẹo, đố vui, hoặc đố kiến thức dân gian tiếng Việt.
+    Độ khó: {difficulty}.
+    CHỈ TRẢ VỀ ĐÚNG 1 OBJECT JSON, KHÔNG BỌC TRONG CODE BLOCK, KHÔNG GIẢI THÍCH:
+    {{"cau_do": "Nội dung câu đố ngắn gọn, súc tích", "dap_an": "Đáp án đúng nhất (1-3 từ)"}}
+    """
+    reply, _ = ask_ai(prompt, use_search=False)
+    data_qa = None
+    try:
+        match = re.search(r'\{.*\}', reply, re.DOTALL)
+        if match:
+            data_qa = json.loads(match.group(0))
+    except:
+        pass
+
+    if not data_qa or "dap_an" not in data_qa:
+        data_qa = random.choice(FALLBACK_RIDDLES.get(difficulty, FALLBACK_RIDDLES["trung bình"]))
+
+    return jsonify({"cau_do": data_qa['cau_do'], "dap_an": data_qa['dap_an']})
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/")
@@ -358,31 +390,17 @@ def chat():
     payload = request.get_json(force=True)
     message = (payload.get("message") or "").strip()
     use_search = payload.get("search", True) is not False
-    if not message:
-        return jsonify({"error": "Nhập nội dung"}), 400
+    if not message: return jsonify({"error": "Nhập nội dung"}), 400
     reply, status = ask_ai(message, use_search)
-    is_error = "Lỗi" in status
-    return jsonify({"reply": reply, "search_status": status, "is_error": is_error})
+    return jsonify({"reply": reply, "search_status": status, "is_error": "Lỗi" in status})
 
 @app.post("/api/get_lyrics")
 def get_lyrics():
     query = request.get_json(force=True).get("query", "").strip()
-    if not query:
-        return jsonify({"error": "Chưa nhập tên bài hát."}), 400
-    prompt = f"Cung cấp lời bài hát và ca sĩ thể hiện cho: '{query}'."
-    reply, status = ask_ai(prompt, use_search=True)
-    if "Lỗi" in status:
-        return jsonify({"error": reply}), 500
+    if not query: return jsonify({"error": "Chưa nhập tên bài hát."}), 400
+    reply, status = ask_ai(f"Cung cấp lời bài hát và ca sĩ thể hiện cho: '{query}'.", use_search=True)
+    if "Lỗi" in status: return jsonify({"error": reply}), 500
     return jsonify({"lyrics": reply})
-
-@app.post("/api/ghost_story")
-def ghost_story():
-    topic = request.get_json(force=True).get("topic", "đêm khuya").strip()
-    prompt = f"Sáng tác truyện ma ngắn rùng rợn về: {topic}."
-    reply, status = ask_ai(prompt, use_search=False)
-    if "Lỗi" in status:
-        return jsonify({"error": reply}), 500
-    return jsonify({"story": reply})
 
 @app.post("/api/clear")
 def clear():
