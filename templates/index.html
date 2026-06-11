@@ -16,7 +16,7 @@
       --warning: #f59e0b;
       --purple: #8b5cf6;
       --cyan: #0ea5e9;
-      --pink: #d946ef;
+      --pink: #ec4899;
       --glass-bg: rgba(30, 41, 59, 0.45);
       --glass-border: rgba(255, 255, 255, 0.15);
       --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
@@ -24,7 +24,6 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     
-    /* 1. NỀN 3D CÓ CHIỀU SÂU VÀ ORB CHUYỂN ĐỘNG */
     body { 
         background-color: #020617; 
         color: var(--text-main); 
@@ -37,7 +36,6 @@
         position: relative;
     }
 
-    /* Các khối sáng chuyển động tạo chiều sâu */
     .bg-orb {
         position: fixed;
         border-radius: 50%;
@@ -65,7 +63,6 @@
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 28px; }
     
-    /* 2. HIỆU ỨNG THẺ KÍNH (GLASSMORPHISM) */
     .card { 
         background: var(--glass-bg); 
         backdrop-filter: blur(16px); 
@@ -78,7 +75,7 @@
         position: relative; 
         overflow: hidden;
     }
-    .card::before { /* Lớp phủ sương mờ siêu mỏng */
+    .card::before { 
         content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%); z-index: 0; pointer-events: none;
     }
     .card > * { position: relative; z-index: 1; }
@@ -141,20 +138,17 @@
     }
     .output-box { display: none; margin-top: 16px; padding: 18px; border-radius: 10px; background: rgba(0,0,0,0.4); border-left: 4px solid var(--primary); font-size: 15px; line-height: 1.8; white-space: pre-wrap; max-height: 400px; overflow-y: auto; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);}
 
-    /* Tetris 3D Depth */
     .tetris-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 4px 12px rgba(0,0,0,0.5);}
     canvas#tetris { background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255,255,255,0.1); border-radius: 6px; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
     .tetris-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; width: 100%; max-width: 240px; }
     .tetris-controls button { padding: 14px; font-size: 18px; background: rgba(51, 65, 85, 0.8); color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;}
     
-    /* Caro 3D Depth */
     .caro-wrapper { margin-top: 20px; max-width: 100%; max-height: 420px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(15, 23, 42, 0.8); padding: 10px; box-shadow: inset 0 4px 15px rgba(0,0,0,0.6);}
     .caro-grid { display: grid; grid-template-columns: repeat(25, 38px); gap: 2px; background: rgba(255,255,255,0.05); width: max-content; margin: 0 auto; }
     .caro-cell { width: 38px; height: 38px; background: rgba(30, 41, 59, 0.9); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; cursor: pointer; user-select: none; transition: all 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
     .caro-cell:hover { background: rgba(51, 65, 85, 1); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2;}
     .win-cell { background: linear-gradient(135deg, #facc15, #f59e0b) !important; color: #0f172a !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6) !important; transform: scale(1.1); z-index: 3;}
 
-    /* Hack Menu 3D */
     #hack-menu-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
     #btn-toggle-hack { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #dc2626, #991b1b); color: white; font-size: 26px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 10px 25px rgba(220, 38, 38, 0.5); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px);}
     #btn-toggle-hack:hover { transform: scale(1.15) rotate(15deg); box-shadow: 0 15px 35px rgba(220, 38, 38, 0.7); }
@@ -173,7 +167,7 @@
   <main>
     <div class="header-title">
       <h1>HỆ THỐNG WORKSPACE PREMIUM</h1>
-      <p>Trí Tuệ Nhân Tạo & Không Gian Giải Trí Tối Tối Ưu</p>
+      <p>Trí Tuệ Nhân Tạo & Không Gian Giải Trí Tối Ưu</p>
     </div>
 
     <div class="grid">
@@ -207,10 +201,35 @@
     </div>
 
     <div class="grid">
+      <div class="card" style="border-top: 4px solid #ec4899;">
+        <div class="card-header"><span style="font-size:22px;">🧩</span><h2>Giải Mã Ký Tự (Wikipedia)</h2></div>
+        <div id="scramble-topic" style="font-size: 14px; color: var(--pink); font-weight: 600; margin-bottom: 12px;">Đang kết nối máy chủ...</div>
+        
+        <div id="scramble-hint" style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 15px; color: #e2e8f0; line-height: 1.6; border-left: 3px solid #ec4899;">
+            Đang cào dữ liệu từ Internet...
+        </div>
+        
+        <div style="font-size: 14px; margin-bottom: 12px; color: var(--text-muted);">
+            Số chữ cái: <strong id="scramble-count" style="color: white; font-size: 16px;">0</strong>
+        </div>
+        
+        <div id="scramble-blocks" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 40px; justify-content: center;"></div>
+        
+        <input type="text" id="scramble-input" placeholder="NHẬP ĐÁP ÁN CỦA BẠN..." style="text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+        
+        <div class="button-group" style="justify-content: center;">
+          <button id="btn-scramble-check" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">Kiểm tra</button>
+          <button id="btn-scramble-reveal" class="btn-secondary" style="color: #fca5a5;">Xem đáp án</button>
+          <button id="btn-scramble-next" class="btn-primary" style="background: linear-gradient(135deg, #ec4899, #be185d);">Đổi câu khác ⏭️</button>
+        </div>
+        
+        <div id="scramble-message" style="margin-top: 16px; text-align: center; font-weight: 600; font-size: 15px; min-height: 22px;"></div>
+      </div>
+
       <div class="card" style="border-top: 4px solid #f59e0b;">
         <div class="card-header" style="justify-content: space-between;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:22px;">🧩</span><h2>Xếp Hình 2D (Tetris)</h2>
+            <span style="font-size:22px;">🧱</span><h2>Xếp Hình 2D (Tetris)</h2>
           </div>
           <div id="tetris-score" style="font-size: 16px; font-weight:700; color:#fcd34d; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Điểm: 0</div>
         </div>
@@ -230,7 +249,7 @@
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid #ef4444;">
+      <div class="card" style="border-top: 4px solid #ef4444; grid-column: 1 / -1;">
         <div class="card-header" style="justify-content: space-between;">
             <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:22px;">⭕</span><h2>Cờ Caro (AI Cấp Cao)</h2>
@@ -358,6 +377,74 @@
                 updateBadge("lyric-status", err.message, "error");
             }
         };
+    })();
+
+    // --- MODULE GIẢI MÃ KÝ TỰ (MỚI) ---
+    (() => {
+        let currentAnswer = "";
+        const hintEl = document.getElementById("scramble-hint");
+        const topicEl = document.getElementById("scramble-topic");
+        const countEl = document.getElementById("scramble-count");
+        const blocksEl = document.getElementById("scramble-blocks");
+        const inputEl = document.getElementById("scramble-input");
+        const msgEl = document.getElementById("scramble-message");
+
+        async function loadScramble() {
+            msgEl.textContent = "";
+            inputEl.value = "";
+            hintEl.textContent = "Đang cào dữ liệu từ Wikipedia...";
+            blocksEl.innerHTML = "";
+            topicEl.textContent = "Chủ đề: Đang tải...";
+
+            try {
+                const res = await fetch("/api/game/scramble");
+                const data = await res.json();
+                
+                currentAnswer = data.dap_an;
+                topicEl.textContent = `Chủ đề: ${data.chu_de}`;
+                hintEl.innerHTML = `<strong>Gợi ý:</strong> ${data.goi_y}`;
+                countEl.textContent = data.so_luong;
+
+                data.xao_tron.forEach(char => {
+                    const div = document.createElement("div");
+                    div.style.cssText = "background: rgba(236, 72, 153, 0.2); border: 1px solid #ec4899; color: #fbcfe8; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);";
+                    div.textContent = char;
+                    blocksEl.appendChild(div);
+                });
+            } catch (err) {
+                hintEl.textContent = "Lỗi kết nối mạng. Bạn thử bấm Đổi câu khác xem sao!";
+            }
+        }
+
+        document.getElementById("btn-scramble-check").onclick = () => {
+            const userVal = inputEl.value.trim().toUpperCase().replace(/\s/g, '');
+            const ansVal = currentAnswer.replace(/\s/g, '');
+            
+            if(!userVal) {
+                msgEl.textContent = "Vui lòng nhập đáp án!";
+                msgEl.style.color = "#f59e0b";
+                return;
+            }
+            
+            if(userVal === ansVal) {
+                msgEl.textContent = "🎉 CHÍNH XÁC! Quá đỉnh!";
+                msgEl.style.color = "#10b981";
+            } else {
+                msgEl.textContent = "❌ Chưa đúng, thử lại nhé!";
+                msgEl.style.color = "#ef4444";
+            }
+        };
+
+        document.getElementById("btn-scramble-reveal").onclick = () => {
+            msgEl.innerHTML = `💡 Đáp án là: <span style="color: #fca5a5;">${currentAnswer}</span>`;
+            msgEl.style.color = "#e2e8f0";
+            inputEl.value = currentAnswer;
+        };
+
+        document.getElementById("btn-scramble-next").onclick = loadScramble;
+
+        // Tự động load câu hỏi khi khởi động web
+        loadScramble();
     })();
 
     // --- MODULE XẾP HÌNH 2D (TETRIS) ---
@@ -529,7 +616,6 @@
             update();
         };
 
-        // GẮN HACK CHO TETRIS
         document.getElementById("hack-tetris-clear").onclick = () => {
             if(!gameRunning) return;
             for(let i=0; i<4; i++) {
@@ -576,7 +662,7 @@
                     div.id = `cell-${r}-${c}`;
                     if (caroState[r][c] !== "") {
                         div.textContent = caroState[r][c];
-                        div.style.color = caroState[r][c] === 'X' ? '#60a5fa' : '#f87171'; // Màu neon sáng
+                        div.style.color = caroState[r][c] === 'X' ? '#60a5fa' : '#f87171';
                     }
                     div.addEventListener('click', () => handleCaroClick(r, c));
                     boardEl.appendChild(div);
@@ -720,7 +806,6 @@
             }
         };
 
-        // GẮN HACK CHO CARO
         document.getElementById("hack-caro-clear").onclick = () => {
             if(!caroActive) return;
             for(let r=0; r<SIZE; r++){
