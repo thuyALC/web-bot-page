@@ -1,410 +1,330 @@
-import json
-import os
-import random
-import re
-from datetime import datetime, timezone, timedelta
-
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask, jsonify, render_template, request
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "b4-f3a-k3y-p1s-r3pl4c3-1t")
-
-# ── API Keys ──────────────────────────────────────────────────────────────────
-GEMINI_API_KEY      = os.environ.get("GEMINI_API_KEY", "").strip()
-OPENROUTER_API_KEY  = os.environ.get("OPENROUTER_API_KEY", "").strip()
-GITHUB_TOKEN        = os.environ.get("GITHUB_TOKEN", "").strip()
-TAVILY_API_KEY      = os.environ.get("TAVILY_API_KEY", "").strip()
-
-GEMINI_MODEL        = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-OPENROUTER_MODEL    = os.environ.get("OPENROUTER_MODEL", "mistralai/mistral-7b-instruct:free")
-GITHUB_MODEL        = os.environ.get("GITHUB_MODEL", "gpt-4o-mini")
-
-# ── Gemini Tool định nghĩa ────────────────────────────────────────────────────
-HERMES_TOOL_NAME = "tavily_search"
-HERMES_TOOL = {
-    "functionDeclarations": [
-        {
-            "name": HERMES_TOOL_NAME,
-            "description": (
-                "Search for fresh news, current data, prices, schedules, or recent events."
-            ),
-            "parameters": {
-                "type": "OBJECT",
-                "properties": {
-                    "query": {"type": "STRING", "description": "Search query."},
-                    "locale": {"type": "STRING", "description": "Locale, e.g. vi-VN."},
-                },
-                "required": ["query"],
-            },
-        }
-    ]
-}
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def now_str() -> str:
-    gmt7 = timezone(timedelta(hours=7))
-    return datetime.now(tz=gmt7).strftime("%d/%m/%Y %H:%M:%S (GMT+7)")
-
-def system_prompt_vi() -> str:
-    return (
-        "Bạn là trợ lý AI thông minh, bắt buộc trả lời bằng tiếng Việt. "
-        f"Thời gian hiện tại tại Việt Nam: {now_str()}. "
-        "QUAN TRỌNG – Luật trả lời:\n"
-        "1. Trả lời TRỰC TIẾP vào câu hỏi, KHÔNG nói vòng vo.\n"
-        "2. Dựa vào dữ liệu được cung cấp, hãy phân tích thật ĐẦY ĐỦ, CÓ CHI TIẾT (ngày, giờ, địa điểm cụ thể).\n"
-        "3. Trình bày rõ ràng, dùng Markdown, gạch đầu dòng hoặc số thứ tự cho dễ đọc.\n"
-        "4. Nếu thông tin không có trong dữ liệu tìm kiếm, hãy nói rõ là chưa có thông tin cập nhật, KHÔNG tự bịa."
-    )
-
-def extract_text_openai_style(data: dict) -> str:
-    try:
-        return data["choices"][0]["message"]["content"].strip()
-    except Exception:
-        return ""
-
-def extract_text_from_gemini(data: dict) -> str:
-    candidates = data.get("candidates") or []
-    if not candidates:
-        return ""
-    parts = candidates[0].get("content", {}).get("parts", [])
-    return "".join(p.get("text", "") for p in parts if "text" in p).strip()
-
-# ── Tavily Search ─────────────────────────────────────────────────────────────
-def call_tavily(query: str) -> dict:
-    if not TAVILY_API_KEY:
-        return {"ok": False, "error": "Chưa cấu hình TAVILY_API_KEY."}
-    try:
-        res = requests.post(
-            "https://api.tavily.com/search",
-            headers={"Content-Type": "application/json"},
-            json={
-                "api_key": TAVILY_API_KEY,
-                "query": query,
-                "search_depth": "basic",
-                "include_answer": True,
-                "max_results": 5,
-            },
-            timeout=20,
-        )
-        if res.status_code != 200:
-            return {"ok": False, "error": f"Tavily lỗi {res.status_code}."}
-        data = res.json()
-        answer = data.get("answer", "")
-        results = data.get("results", [])
-        if not answer and results:
-            snippets = [
-                f"- {r.get('title','')}: {r.get('content','')[:200]}"
-                for r in results[:3]
-            ]
-            answer = "\n".join(snippets)
-        return {"ok": True, "data": {"answer": answer, "sources": results}}
-    except Exception as exc:
-        return {"ok": False, "error": f"Lỗi Tavily: {exc}"}
-
-def tavily_answer(query: str) -> tuple[str, str]:
-    r = call_tavily(query)
-    if not r.get("ok"):
-        return r.get("error", "Tavily không trả về dữ liệu."), "Lỗi Tavily"
-
-    data = r["data"]
-    raw_answer = data.get("answer", "")
-    sources = data.get("sources", [])
-
-    context_parts = []
-    if raw_answer:
-        context_parts.append(f"Tóm tắt: {raw_answer}")
-    for s in sources[:4]:
-        title = s.get("title", "")
-        content = s.get("content", "")[:400]
-        url = s.get("url", "")
-        if title or content:
-            context_parts.append(f"- {title}: {content} ({url})")
-    context = "\n".join(context_parts) or "Không có dữ liệu."
-
-    synthesis_prompt = (
-        f"Dựa vào dữ liệu tìm kiếm dưới đây, hãy trả lời câu hỏi: '{query}'\n\n"
-        f"DỮ LIỆU:\n{context}\n\n"
-        "Yêu cầu: Trả lời hoàn toàn bằng tiếng Việt, đầy đủ chi tiết, rõ ràng, "
-        "KHÔNG nói 'dựa vào dữ liệu trên', chỉ trả lời thẳng vào nội dung."
-    )
-
-    reply, status = ask_github_models(synthesis_prompt)
-    if status != "skip":
-        return reply, "Tavily + GitHub Models"
-
-    reply, status = ask_openrouter(synthesis_prompt)
-    if status != "skip":
-        return reply, "Tavily + OpenRouter"
-
-    return f"*(Chế độ thô)*\n{raw_answer}\n\nNguồn tham khảo:\n{context}", "Tavily Raw (Lỗi AI)"
-
-# ── OpenRouter fallback ───────────────────────────────────────────────────────
-def ask_openrouter(message: str) -> tuple[str, str]:
-    if not OPENROUTER_API_KEY:
-        return "", "skip"
-    try:
-        res = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": OPENROUTER_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt_vi()},
-                    {"role": "user", "content": message},
-                ],
-                "max_tokens": 2048,
-            },
-            timeout=30,
-        )
-        if res.status_code != 200:
-            return "", "skip"
-        reply = extract_text_openai_style(res.json())
-        if reply:
-            return reply, f"OpenRouter ({OPENROUTER_MODEL.split('/')[-1]})"
-        return "", "skip"
-    except Exception:
-        return "", "skip"
-
-# ── GitHub Models fallback ────────────────────────────────────────────────────
-def ask_github_models(message: str) -> tuple[str, str]:
-    if not GITHUB_TOKEN:
-        return "", "skip"
-    try:
-        res = requests.post(
-            "https://models.inference.ai.azure.com/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GITHUB_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": GITHUB_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt_vi()},
-                    {"role": "user", "content": message},
-                ],
-                "max_tokens": 2048,
-            },
-            timeout=30,
-        )
-        if res.status_code != 200:
-            return "", "skip"
-        reply = extract_text_openai_style(res.json())
-        if reply:
-            return reply, f"GitHub Models ({GITHUB_MODEL})"
-        return "", "skip"
-    except Exception:
-        return "", "skip"
-
-# ── Fallback chain khi Gemini lỗi ────────────────────────────────────────────
-def ai_fallback(message: str, gemini_err: str) -> tuple[str, str]:
-    reply, status = ask_github_models(message)
-    if status != "skip":
-        return reply, status
-
-    reply, status = ask_openrouter(message)
-    if status != "skip":
-        return reply, status
-
-    reply, status = tavily_answer(message)
-    if "Lỗi" not in status:
-        return reply, "Tavily Search (Gemini Backup)"
-
-    return gemini_err, "Lỗi – Tất cả dịch vụ không khả dụng"
-
-# ── Gemini (main) ─────────────────────────────────────────────────────────────
-def ask_ai(user_message: str, use_search: bool = True) -> tuple[str, str]:
-    if not GEMINI_API_KEY:
-        return ai_fallback(user_message, "Chưa cấu hình GEMINI_API_KEY.")
-
-    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    
-    payload = {
-        "systemInstruction": {"parts": [{"text": system_prompt_vi()}]},
-        "contents": [{"role": "user", "parts": [{"text": user_message}]}]
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI CHAT BOT - Premium Workspace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --text-main: #f9fafb; --text-muted: #cbd5e1; 
+      --primary: #3b82f6; --primary-hover: #2563eb;
+      --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+      --purple: #8b5cf6; --cyan: #0ea5e9; --pink: #ec4899; --teal: #14b8a6;
+      --glass-bg: rgba(30, 41, 59, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.15);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
 
-    if use_search:
-        payload["tools"] = [HERMES_TOOL]
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #020617; color: var(--text-main); line-height: 1.5; padding: 40px 16px; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; position: relative; }
 
-    try:
-        res = requests.post(
-            gemini_url,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=30,
-        )
+    .bg-orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: -1; pointer-events: none; animation: floatOrb 25s infinite alternate ease-in-out; opacity: 0.5; }
+    .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #2563eb; }
+    .orb-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #8b5cf6; animation-delay: -5s; animation-duration: 30s;}
+    .orb-3 { top: 30%; left: 30%; width: 40vw; height: 40vw; background: #0ea5e9; animation-delay: -15s; opacity: 0.3;}
+
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(5vw, 10vh) scale(1.2); } 100% { transform: translate(-5vw, -5vh) scale(0.9); } }
+
+    main { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 28px; z-index: 1;}
+    .header-title { text-align: center; margin-bottom: 12px; }
+    .header-title h1 { font-size: 36px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em; text-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-bottom: 8px;}
+    .header-title p { color: var(--text-muted); font-size: 16px; font-weight: 300; letter-spacing: 1px;}
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 28px; }
+    
+    .card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 28px; box-shadow: var(--glass-shadow); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; position: relative; overflow: hidden; }
+    .card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%); z-index: 0; pointer-events: none; }
+    .card > * { position: relative; z-index: 1; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 15px 45px rgba(0,0,0,0.5); border-color: rgba(255, 255, 255, 0.3); }
+    
+    .card-header { display: flex; align-items: center; margin-bottom: 20px; gap: 10px; }
+    .card-header h2 { font-size: 20px; font-weight: 600; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5);}
+    
+    textarea, input[type="text"] { width: 100%; padding: 14px 18px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; font-size: 15px; background: rgba(15, 23, 42, 0.6); color: #ffffff; transition: all 0.3s; outline: none; margin-bottom: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+    textarea:focus, input[type="text"]:focus { background: rgba(15, 23, 42, 0.9); border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 2px 4px rgba(0,0,0,0.3); }
+    textarea { min-height: 90px; resize: vertical; }
+
+    .button-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button { display: inline-flex; align-items: center; justify-content: center; padding: 12px 22px; font-size: 15px; font-weight: 600; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    button:active { transform: scale(0.96); box-shadow: 0 2px 6px rgba(0,0,0,0.2);}
+    
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { filter: brightness(1.15); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+    .btn-secondary { background: rgba(51, 65, 85, 0.8); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); }
+    .btn-secondary:hover { background: rgba(71, 85, 105, 0.9); border-color: rgba(255,255,255,0.3);}
+
+    label.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+
+    .badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);}
+    .badge.success { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; display: inline-flex; }
+    .badge.error { background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; display: inline-flex; }
+    .badge.warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; display: inline-flex; }
+
+    pre.result-box { background: rgba(15, 23, 42, 0.7); color: #e2e8f0; padding: 24px; border-radius: 12px; font-family: ui-monospace, monospace; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-x: auto; min-height: 120px; margin: 0; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 4px 10px rgba(0,0,0,0.4); }
+    .output-box { display: none; margin-top: 16px; padding: 18px; border-radius: 10px; background: rgba(0,0,0,0.4); border-left: 4px solid var(--primary); font-size: 15px; line-height: 1.8; white-space: pre-wrap; max-height: 400px; overflow-y: auto; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);}
+
+    .game-box-bg { background: rgba(0,0,0,0.3); padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 15px; color: #e2e8f0; line-height: 1.6; }
+
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 20px 12px; } }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main>
+    <div class="header-title">
+      <h1>HỆ THỐNG WORKSPACE PREMIUM</h1>
+      <p>Trí Tuệ Nhân Tạo & Không Gian Giải Trí Tối Ưu</p>
+    </div>
+
+    <!-- HÀNG 1: CHAT VÀ LYRIC -->
+    <div class="grid">
+      <div class="card" style="border-top: 4px solid #10b981;">
+        <div class="card-header"><span style="font-size:22px;">💬</span><h2>Chat AI (Gemini + Agents)</h2></div>
+        <textarea id="message" placeholder="Triển khai lệnh hoặc đặt câu hỏi..."></textarea>
+        <div class="button-group">
+          <button id="send" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">Gửi lệnh thực thi</button>
+          <button id="clear" class="btn-secondary">Làm mới bộ nhớ</button>
+          <label class="checkbox-label"><input id="search" type="checkbox" checked> Online</label>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid #8b5cf6;">
+        <div class="card-header"><span style="font-size:22px;">🎵</span><h2>Tìm Kiếm Lời Bài Hát</h2></div>
+        <input type="text" id="song-query" placeholder="Nhập tên bài hoặc 1 đoạn lyric...">
+        <div class="button-group">
+          <button id="btn-lyric" class="btn-primary" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">Trích xuất Lyric</button>
+        </div>
+        <div id="lyric-status" class="badge" style="margin-top: 14px; margin-bottom: 0;"></div>
+        <div id="lyric-output" class="output-box" style="border-left-color: #8b5cf6;"></div>
+      </div>
+    </div>
+
+    <!-- TERMINAL CHAT -->
+    <div class="card" style="padding: 0; box-shadow: var(--glass-shadow); border-top: 4px solid #3b82f6;">
+      <div style="padding: 14px 24px; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 16px; font-weight: 600; margin: 0; letter-spacing: 0.5px;">KẾT QUẢ TRUY VẤN TỪ TERMINAL</h2>
+        <div id="chat-status" class="badge"></div>
+      </div>
+      <pre id="result" class="result-box" style="border:none; border-radius: 0 0 16px 16px;">[System] Khởi động thành công. Đang chờ lệnh từ người dùng...</pre>
+    </div>
+
+    <!-- HÀNG 2: 2 MINI GAME AI -->
+    <div class="grid">
+      <!-- GAME 1: GIẢI MÃ KÝ TỰ -->
+      <div class="card" style="border-top: 4px solid #ec4899;">
+        <div class="card-header"><span style="font-size:22px;">🧩</span><h2>Giải Mã Ký Tự (Khởi động)</h2></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div id="scramble-topic" style="font-size: 14px; color: var(--pink); font-weight: 600;">Đang tải...</div>
+            <select id="scramble-diff" style="background: rgba(15,23,42,0.8); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none;">
+                <option value="dễ">🟢 Dễ</option>
+                <option value="trung bình" selected>🟡 TB</option>
+                <option value="khó">🔴 Khó</option>
+            </select>
+        </div>
         
-        if res.status_code != 200:
-            return ai_fallback(user_message, f"Gemini lỗi {res.status_code}")
+        <div id="scramble-hint" class="game-box-bg" style="border-left: 3px solid #ec4899;">Đang phân tích...</div>
+        <div id="scramble-blocks" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; justify-content: center; min-height: 40px;"></div>
+        <input type="text" id="scramble-input" placeholder="NHẬP ĐÁP ÁN ĐỂ KIỂM TRA" style="text-align: center; font-weight: bold; text-transform: uppercase;">
+        
+        <div class="button-group" style="justify-content: center;">
+          <button id="btn-scramble-check" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">Kiểm tra</button>
+          <button id="btn-scramble-reveal" class="btn-secondary" style="color: #fca5a5;">Đáp án</button>
+          <button id="btn-scramble-next" class="btn-primary" style="background: linear-gradient(135deg, #ec4899, #be185d);">Câu khác ⏭️</button>
+        </div>
+        <div id="scramble-message" style="margin-top: 16px; text-align: center; font-weight: 600; font-size: 15px; min-height: 22px;"></div>
+      </div>
 
-        response_data = res.json()
-        candidates = response_data.get("candidates") or []
-        if not candidates:
-            return ai_fallback(user_message, "Gemini không trả về kết quả.")
+      <!-- GAME 2: CÂU ĐỐ TRÍ TUỆ (MỚI THÊM) -->
+      <div class="card" style="border-top: 4px solid var(--teal);">
+        <div class="card-header"><span style="font-size:22px;">💡</span><h2>Câu Đố Trí Tuệ (AI Sinh)</h2></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 14px; color: var(--teal); font-weight: 600;">Hỏi xoáy đáp xoay</div>
+            <select id="riddle-diff" style="background: rgba(15,23,42,0.8); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none;">
+                <option value="dễ">🟢 Dễ</option>
+                <option value="trung bình" selected>🟡 TB</option>
+                <option value="khó">🔴 Khó</option>
+            </select>
+        </div>
+        
+        <div id="riddle-question" class="game-box-bg" style="border-left: 3px solid var(--teal); font-size: 16px; font-weight: 500;">AI đang nặn nếp nhăn để tạo câu đố...</div>
+        
+        <input type="text" id="riddle-input" placeholder="Theo bạn đáp án là gì?" style="text-align: center; font-weight: bold; text-transform: uppercase;">
+        
+        <div class="button-group" style="justify-content: center;">
+          <button id="btn-riddle-check" class="btn-primary" style="background: linear-gradient(135deg, var(--teal), #0f766e);">Trả lời</button>
+          <button id="btn-riddle-reveal" class="btn-secondary" style="color: #99f6e4;">Đầu hàng</button>
+          <button id="btn-riddle-next" class="btn-primary" style="background: linear-gradient(135deg, var(--teal), #0d9488);">Câu khác ⏭️</button>
+        </div>
+        <div id="riddle-message" style="margin-top: 16px; text-align: center; font-weight: 600; font-size: 15px; min-height: 22px;"></div>
+      </div>
+    </div>
+  </main>
 
-        candidate_content = candidates[0].get("content", {})
-        parts = candidate_content.get("parts", [])
-        function_call = next((p.get("functionCall") for p in parts if "functionCall" in p), None)
+  <script>
+    async function apiCall(endpoint, payload) {
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lỗi máy chủ nội bộ.");
+      return data;
+    }
+    
+    function updateBadge(id, text, type) {
+        const badge = document.getElementById(id);
+        if(!badge) return;
+        badge.textContent = text;
+        badge.className = `badge ${type}`;
+        badge.style.display = 'inline-flex';
+    }
 
-        if function_call and function_call.get("name") == HERMES_TOOL_NAME:
-            args = function_call.get("args") or {}
-            q = args.get("query") or user_message
-            tavily_result = call_tavily(q)
+    // --- MODULE CHAT AI ---
+    (() => {
+        const sendBtn = document.getElementById("send");
+        const clearBtn = document.getElementById("clear");
+        const input = document.getElementById("message");
+        const result = document.getElementById("result");
+        
+        if(sendBtn) sendBtn.onclick = async () => {
+            const msg = input?.value.trim();
+            if (!msg) return;
+            updateBadge("chat-status", "⏳ Đang phân tích...", "warning");
+            result.textContent = "[Đang chạy luồng suy nghĩ & quét dữ liệu mạng...]";
+            try {
+                const search = document.getElementById("search")?.checked;
+                const data = await apiCall("/api/chat", { message: msg, search });
+                updateBadge("chat-status", data.search_status, data.is_error ? "error" : "success");
+                result.textContent = data.reply;
+            } catch (err) { 
+                updateBadge("chat-status", "Mất kết nối", "error");
+                result.textContent = "⚠️ Lỗi hệ thống: " + err.message; 
+            }
+        };
 
-            payload["contents"].append(candidate_content)
-            payload["contents"].append({
-                "role": "function",
-                "parts": [{
-                    "functionResponse": {
-                        "name": HERMES_TOOL_NAME,
-                        "response": {"result": tavily_result}
-                    }
-                }]
-            })
+        if(clearBtn) clearBtn.onclick = async () => {
+            await apiCall("/api/clear", {});
+            input.value = "";
+            document.getElementById("chat-status").style.display = "none";
+            result.textContent = "[System] Bộ nhớ đệm đã được dọn dẹp sạch sẽ.";
+        };
+    })();
 
-            final_res = requests.post(
-                gemini_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=30,
-            )
+    // --- MODULE TÌM LYRIC ---
+    (() => {
+        const searchBtn = document.getElementById("btn-lyric");
+        const input = document.getElementById("song-query");
+        const output = document.getElementById("lyric-output");
+        
+        if(searchBtn) searchBtn.onclick = async () => {
+            const query = input?.value.trim();
+            if (!query) { updateBadge("lyric-status", "Yêu cầu nhập từ khóa", "error"); return; }
+            updateBadge("lyric-status", "Đang tra cứu cơ sở dữ liệu...", "warning");
+            output.style.display = "none";
+            try {
+                const data = await apiCall("/api/get_lyrics", { query });
+                output.textContent = data.lyrics; 
+                output.style.display = "block";
+                updateBadge("lyric-status", "Trích xuất hoàn tất", "success");
+            } catch (err) { 
+                updateBadge("lyric-status", err.message, "error");
+            }
+        };
+    })();
+
+    // --- MODULE GAME 1: GIẢI MÃ KÝ TỰ ---
+    (() => {
+        let currentAnswer = "";
+        const hintEl = document.getElementById("scramble-hint");
+        const topicEl = document.getElementById("scramble-topic");
+        const blocksEl = document.getElementById("scramble-blocks");
+        const inputEl = document.getElementById("scramble-input");
+        const msgEl = document.getElementById("scramble-message");
+        const diffSelect = document.getElementById("scramble-diff");
+
+        async function loadScramble() {
+            msgEl.textContent = ""; inputEl.value = "";
+            hintEl.textContent = "Hệ thống AI đang đúc kết câu đố chuyên biệt... (Mất khoảng 2-4s)";
+            blocksEl.innerHTML = ""; topicEl.textContent = "Chủ đề: Đang tải...";
+            try {
+                const data = await apiCall("/api/game/scramble", { difficulty: diffSelect.value });
+                currentAnswer = data.dap_an;
+                topicEl.textContent = `Chủ đề: ${data.chu_de}`;
+                hintEl.innerHTML = `<strong>Gợi ý:</strong> ${data.goi_y}`;
+                data.xao_tron.forEach(char => {
+                    const div = document.createElement("div");
+                    div.style.cssText = "background: rgba(236, 72, 153, 0.2); border: 1px solid #ec4899; color: #fbcfe8; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 18px;";
+                    div.textContent = char;
+                    blocksEl.appendChild(div);
+                });
+            } catch (err) {
+                hintEl.textContent = "Lỗi kết nối AI. Bấm 'Câu khác' để tải lại!";
+            }
+        }
+
+        document.getElementById("btn-scramble-check").onclick = () => {
+            const userVal = inputEl.value.trim().toUpperCase().replace(/\s/g, '');
+            const ansVal = currentAnswer.replace(/\s/g, '');
+            if(!userVal) return msgEl.innerHTML = `<span style="color:#f59e0b">Nhập đáp án đi pro!</span>`;
+            if(userVal === ansVal) msgEl.innerHTML = `<span style="color:#10b981">🎉 XUẤT SẮC! Chuẩn không cần chỉnh!</span>`;
+            else msgEl.innerHTML = `<span style="color:#ef4444">❌ Sai òi, suy nghĩ thêm xem.</span>`;
+        };
+
+        document.getElementById("btn-scramble-reveal").onclick = () => {
+            msgEl.innerHTML = `💡 Đáp án là: <span style="color: #fca5a5;">${currentAnswer}</span>`;
+            inputEl.value = currentAnswer;
+        };
+
+        document.getElementById("btn-scramble-next").onclick = loadScramble;
+        diffSelect.onchange = loadScramble;
+        loadScramble();
+    })();
+
+    // --- MODULE GAME 2: CÂU ĐỐ TRÍ TUỆ ---
+    (() => {
+        let currentAnswer = "";
+        const questionEl = document.getElementById("riddle-question");
+        const inputEl = document.getElementById("riddle-input");
+        const msgEl = document.getElementById("riddle-message");
+        const diffSelect = document.getElementById("riddle-diff");
+
+        async function loadRiddle() {
+            msgEl.textContent = ""; inputEl.value = "";
+            questionEl.textContent = "Hệ thống AI đang tra cứu sách cổ... (Đợi 2-4s)";
+            try {
+                const data = await apiCall("/api/game/riddle", { difficulty: diffSelect.value });
+                currentAnswer = data.dap_an;
+                questionEl.innerHTML = `🤔 <strong>Đố bạn:</strong> ${data.cau_do}`;
+            } catch (err) {
+                questionEl.textContent = "Lỗi kết nối AI. Bấm 'Câu khác' để tải lại!";
+            }
+        }
+
+        document.getElementById("btn-riddle-check").onclick = () => {
+            const userVal = inputEl.value.trim().toLowerCase();
+            const ansVal = currentAnswer.toLowerCase();
+            if(!userVal) return msgEl.innerHTML = `<span style="color:#f59e0b">Bạn chưa nhập đáp án kìa!</span>`;
             
-            if final_res.status_code == 200:
-                final_reply = extract_text_from_gemini(final_res.json())
-                if final_reply:
-                    return final_reply, "Tavily + Gemini"
-            
-            if tavily_result.get("ok"):
-                return tavily_answer(q)
-            return ai_fallback(user_message, "Gemini + Tavily đều lỗi.")
+            // So sánh linh hoạt (Fuzzy match nhẹ): Nếu câu trả lời của user nằm trong đáp án gốc hoặc ngược lại
+            if(ansVal.includes(userVal) || userVal.includes(ansVal) || userVal === ansVal) {
+                msgEl.innerHTML = `<span style="color:#10b981">🎉 ĐỈNH CAO! Đáp án chính xác là: ${currentAnswer}</span>`;
+                inputEl.value = currentAnswer;
+            } else {
+                msgEl.innerHTML = `<span style="color:#ef4444">❌ Chưa đúng đâu, não to lên nào!</span>`;
+            }
+        };
 
-        reply = "".join(p.get("text", "") for p in parts if "text" in p).strip()
-        if not reply:
-            return ai_fallback(user_message, "Gemini trả về rỗng.")
-        return reply, "Gemini"
+        document.getElementById("btn-riddle-reveal").onclick = () => {
+            msgEl.innerHTML = `💡 Kém thế! Đáp án là: <span style="color: #99f6e4;">${currentAnswer}</span>`;
+            inputEl.value = currentAnswer;
+        };
 
-    except Exception as exc:
-        return ai_fallback(user_message, f"Lỗi kết nối Gemini: {exc}")
-
-# ── GAME 1: GIẢI MÃ KÝ TỰ (SCRAMBLE) TỪ AI ────────────────────────────────────
-FALLBACK_SCRAMBLE = {
-    "dễ": [
-        {"chu_de": "Động vật", "goi_y": "Loài vật thân thiết giữ nhà cho con người", "dap_an": "CON CHÓ"},
-        {"chu_de": "Đồ vật", "goi_y": "Dùng để che mưa che nắng khi đi bộ", "dap_an": "CÁI Ô"}
-    ],
-    "trung bình": [
-        {"chu_de": "Công nghệ", "goi_y": "Hệ điều hành di động mở của Google", "dap_an": "ANDROID"},
-        {"chu_de": "Thể thao", "goi_y": "Môn thể thao vua được yêu thích nhất thế giới", "dap_an": "BÓNG ĐÁ"}
-    ],
-    "khó": [
-        {"chu_de": "Vật lý", "goi_y": "Lực hút vạn vật về phía tâm Trái Đất", "dap_an": "TRỌNG LỰC"},
-        {"chu_de": "Y khoa", "goi_y": "Loại thuốc đặc trị dùng để tiêu diệt vi khuẩn", "dap_an": "KHÁNG SINH"}
-    ]
-}
-
-@app.route("/api/game/scramble", methods=["POST"])
-def game_scramble():
-    payload = request.get_json(force=True) or {}
-    difficulty = payload.get("difficulty", "trung bình").lower()
-
-    prompt = f"""Hãy làm một chuyên gia tạo câu đố trò chơi đoán chữ tiếng Việt.
-    Độ khó yêu cầu: {difficulty} (Dễ: 3-5 chữ cái; Trung bình: 6-8 chữ cái; Khó: 9+ chữ cái).
-    CHỈ TRẢ VỀ ĐÚNG 1 OBJECT JSON, KHÔNG BỌC TRONG CODE BLOCK, KHÔNG GIẢI THÍCH:
-    {{"chu_de": "tên chủ đề ngắn gọn", "goi_y": "câu gợi ý nghĩa (KHÔNG chứa từ khóa)", "dap_an": "TỪ KHÓA VIẾT HOA"}}
-    """
-    reply, _ = ask_ai(prompt, use_search=False)
-    data_qa = None
-    try:
-        match = re.search(r'\{.*\}', reply, re.DOTALL)
-        if match:
-            data_qa = json.loads(match.group(0))
-    except:
-        pass
-
-    if not data_qa or "dap_an" not in data_qa:
-        data_qa = random.choice(FALLBACK_SCRAMBLE.get(difficulty, FALLBACK_SCRAMBLE["trung bình"]))
-
-    dap_an_goc = data_qa['dap_an'].upper()
-    goi_y_da_che = re.sub(re.escape(dap_an_goc), "___", data_qa['goi_y'], flags=re.IGNORECASE)
-    dap_an_khong_khoang_trang = dap_an_goc.replace(" ", "")
-    chu_cai_xao_tron = list(dap_an_khong_khoang_trang)
-    random.shuffle(chu_cai_xao_tron)
-
-    return jsonify({
-        "chu_de": data_qa['chu_de'], "goi_y": goi_y_da_che, "dap_an": dap_an_goc,
-        "so_luong": len(dap_an_khong_khoang_trang), "xao_tron": chu_cai_xao_tron
-    })
-
-# ── GAME 2: CÂU ĐỐ TRÍ TUỆ (RIDDLE) TỪ AI ────────────────────────────────────
-FALLBACK_RIDDLES = {
-    "dễ": [
-        {"cau_do": "Bỏ ngoài nướng trong, ăn ngoài bỏ trong là bắp gì?", "dap_an": "Bắp ngô"},
-        {"cau_do": "Cái gì đen khi bạn mua nó, đỏ khi dùng nó và xám xịt khi vứt nó đi?", "dap_an": "Than củi"},
-    ],
-    "trung bình": [
-        {"cau_do": "Có răng mà chẳng có mồm, nhai cỏ nhồn nhồn cơm chẳng chịu ăn. Là cái gì?", "dap_an": "Cái liềm"},
-        {"cau_do": "Mặt tròn mặt lại đỏ gay, ai nhìn cũng phải nhíu mày chê bai. Là gì?", "dap_an": "Mặt trời"}
-    ],
-    "khó": [
-        {"cau_do": "Cái gì đập thì sống, không đập thì chết?", "dap_an": "Trái tim"},
-        {"cau_do": "Bệnh gì bác sĩ bó tay?", "dap_an": "Gãy tay"}
-    ]
-}
-
-@app.route("/api/game/riddle", methods=["POST"])
-def game_riddle():
-    payload = request.get_json(force=True) or {}
-    difficulty = payload.get("difficulty", "trung bình").lower()
-
-    prompt = f"""Hãy làm một chuyên gia tạo câu đố mẹo, đố vui, hoặc đố kiến thức dân gian tiếng Việt.
-    Độ khó: {difficulty}.
-    CHỈ TRẢ VỀ ĐÚNG 1 OBJECT JSON, KHÔNG BỌC TRONG CODE BLOCK, KHÔNG GIẢI THÍCH:
-    {{"cau_do": "Nội dung câu đố ngắn gọn, súc tích", "dap_an": "Đáp án đúng nhất (1-3 từ)"}}
-    """
-    reply, _ = ask_ai(prompt, use_search=False)
-    data_qa = None
-    try:
-        match = re.search(r'\{.*\}', reply, re.DOTALL)
-        if match:
-            data_qa = json.loads(match.group(0))
-    except:
-        pass
-
-    if not data_qa or "dap_an" not in data_qa:
-        data_qa = random.choice(FALLBACK_RIDDLES.get(difficulty, FALLBACK_RIDDLES["trung bình"]))
-
-    return jsonify({"cau_do": data_qa['cau_do'], "dap_an": data_qa['dap_an']})
-
-# ── Routes ────────────────────────────────────────────────────────────────────
-@app.get("/")
-def index():
-    return render_template("index.html")
-
-@app.post("/api/chat")
-def chat():
-    payload = request.get_json(force=True)
-    message = (payload.get("message") or "").strip()
-    use_search = payload.get("search", True) is not False
-    if not message: return jsonify({"error": "Nhập nội dung"}), 400
-    reply, status = ask_ai(message, use_search)
-    return jsonify({"reply": reply, "search_status": status, "is_error": "Lỗi" in status})
-
-@app.post("/api/get_lyrics")
-def get_lyrics():
-    query = request.get_json(force=True).get("query", "").strip()
-    if not query: return jsonify({"error": "Chưa nhập tên bài hát."}), 400
-    reply, status = ask_ai(f"Cung cấp lời bài hát và ca sĩ thể hiện cho: '{query}'.", use_search=True)
-    if "Lỗi" in status: return jsonify({"error": reply}), 500
-    return jsonify({"lyrics": reply})
-
-@app.post("/api/clear")
-def clear():
-    return jsonify({"ok": True})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
+        document.getElementById("btn-riddle-next").onclick = loadRiddle;
+        diffSelect.onchange = loadRiddle;
+        loadRiddle();
+    })();
+  </script>
+</body>
+</html>
